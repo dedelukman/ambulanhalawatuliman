@@ -152,6 +152,32 @@ function unassignPermintaanDriver(id, driverId) {
     return saveAllPermintaan(list) ? list[idx] : null;
 }
 
+/* Batalkan konfirmasi driver untuk tugas aktif agar tugas kembali ke notifikasi. */
+function cancelPermintaanTask(id, driverId) {
+    const list = getAllPermintaan();
+    const idx = list.findIndex(p => p && p.id === id);
+    if (idx === -1 || !driverId) return null;
+
+    const p = list[idx];
+    if (p.status !== 'Diproses' || !isPermintaanConfirmedBy(p, driverId) ||
+        isPermintaanDoneBy(p, driverId)) return null;
+
+    const driverKey = String(driverId);
+    const assigned = assignedDriversOf(p).filter(x => x !== driverKey);
+    const confirms = Object.assign({}, confirmMapOf(p));
+    const done = (p.driverDone && typeof p.driverDone === 'object')
+        ? Object.assign({}, p.driverDone) : {};
+    delete confirms[driverKey];
+    delete done[driverKey];
+
+    list[idx] = Object.assign({}, p, {
+        assignedDrivers: assigned,
+        driverConfirms: confirms,
+        driverDone: done
+    });
+    return saveAllPermintaan(list) ? list[idx] : null;
+}
+
 /* Driver menyetujui/mengonfirmasi tugas yang dibroadcast admin (status Diproses).
    Konfirmasi = driver ikut bertugas, jadi driver otomatis masuk daftar assignedDrivers
    (bisa lebih dari satu driver pada satu permintaan). */
@@ -282,7 +308,7 @@ function getPermintaanForDriver(driverId) {
    - Armada yang dipakai driver sedang bertugas   -> 'En Route', selain itu 'Standby'
    - Status manual 'Off Duty' TIDAK pernah diubah otomatis.
    Dipanggil otomatis dari confirmPermintaanTask/Selesai, updatePermintaan,
-   removePermintaan, unassignPermintaanDriver — sehingga panel admin & dashboard
+   removePermintaan, unassignPermintaanDriver, cancelPermintaanTask — sehingga panel admin & dashboard
    selalu membaca data yang sama. */
 
 function driverHasActiveTask(driverId) {

@@ -191,10 +191,14 @@ function renderTaskRow(p) {
         '<p class="text-[10px] text-emerald-500 mt-0.5"><i class="fa-solid fa-circle-check mr-1"></i>' +
             'Anda mengonfirmasi tugas ini (' + formatDateTime(confirms[driverSession.id]) + ')</p>' +
         (canFinish
-            ? '<button type="button" class="btn btn-primary btn-sm mt-2 w-full" data-action="finish-task" data-id="' +
-                escapeHtml(p.id) + '"><i class="fa-solid fa-flag-checkered mr-1"></i> Konfirmasi Selesai</button>'
-            : (done
-                ? '<p class="mt-2 text-[11px] text-emerald-400"><i class="fa-solid fa-trophy mr-1"></i> ' +
+            ? '<div class="flex gap-2 mt-2">' +
+                    '<button type="button" class="btn btn-primary btn-sm flex-1" data-action="finish-task" data-id="' +
+                        escapeHtml(p.id) + '"><i class="fa-solid fa-flag-checkered mr-1"></i> Konfirmasi Selesai</button>' +
+                    '<button type="button" class="btn btn-danger btn-sm flex-1" data-action="cancel-task" data-id="' +
+                        escapeHtml(p.id) + '"><i class="fa-solid fa-xmark mr-1"></i> Batal Konfirmasi</button>' +
+                '</div>'
+                : (done
+                    ? '<p class="mt-2 text-[11px] text-emerald-400"><i class="fa-solid fa-trophy mr-1"></i> ' +
                     'Terima kasih! Anda sudah menandai tugas ini selesai (' + formatDateTime(doneMap[driverSession.id]) + ').</p>'
                 : '<p class="mt-2 text-[11px] text-slate-500"><i class="fa-solid fa-hourglass-half mr-1"></i> ' +
                     'Tugas berakhir dengan status ' + escapeHtml(p.status) + '.</p>')) +
@@ -203,17 +207,21 @@ function renderTaskRow(p) {
 
 function setupTaskActions() {
     const handler = ev => {
-        const btn = ev.target.closest('[data-action="confirm-task"], [data-action="finish-task"]');
+        const btn = ev.target.closest('[data-action="confirm-task"], [data-action="finish-task"], [data-action="cancel-task"]');
         if (!btn) return;
         const id = btn.getAttribute('data-id');
-        const finish = btn.getAttribute('data-action') === 'finish-task';
-        const updated = finish
+        const action = btn.getAttribute('data-action');
+        const updated = action === 'finish-task'
             ? confirmPermintaanSelesai(id, driverSession.id)
-            : confirmPermintaanTask(id, driverSession.id);
+            : (action === 'cancel-task'
+                ? cancelPermintaanTask(id, driverSession.id)
+                : confirmPermintaanTask(id, driverSession.id));
         if (updated) {
-            toast(finish
+            toast(action === 'finish-task'
                 ? 'Tugas ' + id + ' ditandai SELESAI. Terima kasih!'
-                : 'Tugas ' + id + ' terkonfirmasi. Siap bertugas!');
+                : (action === 'cancel-task'
+                    ? 'Konfirmasi tugas ' + id + ' dibatalkan. Tugas kembali ke notifikasi.'
+                    : 'Tugas ' + id + ' terkonfirmasi. Siap bertugas!'));
             renderTasks();
             // Sinkron tampilan profil: status driver & armada ikut diperbarui
             // oleh store.js (Sedang Bertugas saat konfirmasi, Standby saat selesai).
