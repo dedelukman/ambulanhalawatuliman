@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
     // Perbarui notifikasi & daftar tugas tiap 5 detik agar broadcast admin langsung muncul
     setInterval(renderTasks, 5000);
+    window.addEventListener('storage', ev => {
+        if (ev.key === STORE_KEYS.PERMINTAAN || ev.key === STORE_KEYS.AMBULANCES) renderTasks();
+    });
 });
 
 /* ---------- Info driver ---------- */
@@ -137,6 +140,20 @@ function renderIncomingTask(p) {
     const assigned = (typeof assignedDriversOf === 'function') ? assignedDriversOf(p) : [];
     const confirms = (typeof confirmMapOf === 'function') ? confirmMapOf(p) : {};
     const confirmCount = assigned.filter(id => confirms[id]).length;
+    const driver = (typeof driverListSource === 'function')
+        ? driverListSource().find(item => item && item.id === driverSession.id) : null;
+    const currentAmbulance = Object.prototype.hasOwnProperty.call(p, 'selectedAmbulance')
+        ? String(p.selectedAmbulance || '')
+        : (permintaanAmbulanceOf(p, driverSession.id) ||
+            String((driver && driver.ambulanceAssigned) || ''));
+    const ambulances = (typeof ambulanceListSource === 'function') ? ambulanceListSource() : [];
+    const options = ambulances.filter(amb => amb && amb.name).map(amb =>
+        '<option value="' + escapeHtml(amb.name) + '"' +
+        (amb.name === currentAmbulance ? ' selected' : '') + '>' +
+        escapeHtml(amb.name) + (amb.status ? ' · ' + escapeHtml(amb.status) : '') +
+        '</option>'
+    ).join('');
+    const selectedAmbulanceExists = ambulances.some(amb => amb && amb.name === currentAmbulance);
 
     return '<div class="row-card border-amber-500/40 bg-amber-500/5">' +
         '<div class="flex items-center gap-2 flex-wrap">' +
@@ -151,11 +168,23 @@ function renderIncomingTask(p) {
             ' · <span class="mono">' + escapeHtml(p.hp || '-') + '</span></p>' +
         '<p class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-users mr-1"></i>' +
             confirmCount + ' driver sudah konfirmasi</p>' +
+        '<label class="block text-[11px] text-slate-400 mt-2" for="task-ambulance-' + escapeHtml(p.id) +
+            '">Ambulan yang akan digunakan</label>' +
+        '<select id="task-ambulance-' + escapeHtml(p.id) +
+            '" class="input mt-1 text-xs py-1.5" data-action="select-ambulance" data-id="' +
+            escapeHtml(p.id) + '">' +
+            '<option value="">Pilih ambulan...</option>' +
+            options +
+        '</select>' +
         '<div class="flex gap-2 mt-2">' +
             '<button type="button" class="btn btn-primary btn-sm flex-1" data-action="confirm-task" data-id="' +
                 escapeHtml(p.id) + '"><i class="fa-solid fa-handshake mr-1"></i> Konfirmasi Tugas</button>' +
         '</div>' +
-        '<p class="text-[10px] text-slate-600 mt-1">Tekan konfirmasi hanya bila Anda sanggup menugaskan ambulans.</p>' +
+        '<p class="text-[10px] text-slate-600 mt-1">' +
+            (selectedAmbulanceExists
+                ? 'Periksa pilihan ambulan sebelum mengonfirmasi tugas.'
+                : 'Pilih ambulan yang akan digunakan sebelum mengonfirmasi tugas.') +
+            '</p>' +
     '</div>';
 }
 
@@ -169,6 +198,7 @@ function renderTaskRow(p) {
     const doneMap = (p.driverDone && typeof p.driverDone === 'object') ? p.driverDone : {};
     const confirmCount = assigned.filter(id => confirms[id]).length;
     const doneCount = assigned.filter(id => doneMap[id]).length;
+    const assignedAmbulance = permintaanAmbulanceOf(p, driverSession.id);
 
     const badgeClass = p.status === 'Selesai' ? 'badge-green'
         : (p.status === 'Diproses' ? 'badge-amber'
@@ -186,6 +216,9 @@ function renderTaskRow(p) {
         taskDetailSummary(p) +
         '<p class="text-[11px] text-slate-500">Pemohon: ' + escapeHtml(p.nama || '-') +
             ' · <span class="mono">' + escapeHtml(p.hp || '-') + '</span></p>' +
+        (assignedAmbulance
+            ? '<p class="text-[10px] text-slate-400 mt-1"><i class="fa-solid fa-truck-medical mr-1"></i>Ambulan digunakan: ' +
+                escapeHtml(assignedAmbulance) + '</p>' : '') +
         '<p class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-users mr-1"></i>' +
             confirmCount + ' driver konfirmasi · ' + doneCount + ' sudah konfirmasi selesai</p>' +
         '<p class="text-[10px] text-emerald-500 mt-0.5"><i class="fa-solid fa-circle-check mr-1"></i>' +
@@ -206,16 +239,48 @@ function renderTaskRow(p) {
 }
 
 function setupTaskActions() {
+    const notifBox = document.getElementById('taskNotifList');
+    if (notifBox) {
+        notifBox.addEventListener('change', ev => {
+            const select = ev.target.closest('[data-action="select-ambulance"]');
+            if (!select) return;
+            const id = select.getAttribute('data-id');
+            const updated = setPermintaanAmbulance(id, select.value);
+            if (updated) {
+                toast(select.value
+                    ? 'Pilihan ambulan tugas tersimpan dan terlihat oleh driver lain.'
+                    : 'Pilihan ambulan tugas dihapus.');
+            } else {
+                toast('Gagal menyimpan pilihan ambulan. Periksa status tugas dan data armada.');
+                renderTasks();
+            }
+        });
+    }
+
     const handler = ev => {
         const btn = ev.target.closest('[data-action="confirm-task"], [data-action="finish-task"], [data-action="cancel-task"]');
         if (!btn) return;
         const id = btn.getAttribute('data-id');
         const action = btn.getAttribute('data-action');
+        let selectedAmbulance = '';
+        if (action === 'confirm-task') {
+            const card = btn.closest('.row-card');
+            const select = card ? card.querySelector('[data-action="select-ambulance"]') : null;
+            const currentTask = getAllPermintaan().find(task => task && task.id === id);
+            selectedAmbulance = currentTask &&
+                Object.prototype.hasOwnProperty.call(currentTask, 'selectedAmbulance')
+                ? String(currentTask.selectedAmbulance || '')
+                : ((select && select.value) || '');
+            if (!selectedAmbulance) {
+                toast('Pilih ambulan yang akan digunakan sebelum mengonfirmasi tugas.');
+                return;
+            }
+        }
         const updated = action === 'finish-task'
             ? confirmPermintaanSelesai(id, driverSession.id)
             : (action === 'cancel-task'
                 ? cancelPermintaanTask(id, driverSession.id)
-                : confirmPermintaanTask(id, driverSession.id));
+                : confirmPermintaanTask(id, driverSession.id, selectedAmbulance));
         if (updated) {
             toast(action === 'finish-task'
                 ? 'Tugas ' + id + ' ditandai SELESAI. Terima kasih!'
@@ -229,7 +294,6 @@ function setupTaskActions() {
         }
     };
 
-    const notifBox = document.getElementById('taskNotifList');
     if (notifBox) notifBox.addEventListener('click', handler);
     const container = document.getElementById('taskList');
     if (container) container.addEventListener('click', handler);

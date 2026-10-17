@@ -146,9 +146,16 @@ function unassignPermintaanDriver(id, driverId) {
     const p = list[idx];
     const assigned = assignedDriversOf(p).filter(x => x !== String(driverId));
     const confirms = Object.assign({}, confirmMapOf(p));
+    const assignedAmbulances = (p.assignedAmbulances && typeof p.assignedAmbulances === 'object')
+        ? Object.assign({}, p.assignedAmbulances) : {};
     delete confirms[driverId];
+    delete assignedAmbulances[String(driverId)];
 
-    list[idx] = Object.assign({}, p, { assignedDrivers: assigned, driverConfirms: confirms });
+    list[idx] = Object.assign({}, p, {
+        assignedDrivers: assigned,
+        driverConfirms: confirms,
+        assignedAmbulances: assignedAmbulances
+    });
     return saveAllPermintaan(list) ? list[idx] : null;
 }
 
@@ -167,21 +174,48 @@ function cancelPermintaanTask(id, driverId) {
     const confirms = Object.assign({}, confirmMapOf(p));
     const done = (p.driverDone && typeof p.driverDone === 'object')
         ? Object.assign({}, p.driverDone) : {};
+    const assignedAmbulances = (p.assignedAmbulances && typeof p.assignedAmbulances === 'object')
+        ? Object.assign({}, p.assignedAmbulances) : {};
     delete confirms[driverKey];
     delete done[driverKey];
+    delete assignedAmbulances[driverKey];
 
     list[idx] = Object.assign({}, p, {
         assignedDrivers: assigned,
         driverConfirms: confirms,
-        driverDone: done
+        driverDone: done,
+        assignedAmbulances: assignedAmbulances
     });
     return saveAllPermintaan(list) ? list[idx] : null;
+}
+
+function permintaanAmbulanceOf(p, driverId) {
+    if (p && Object.prototype.hasOwnProperty.call(p, 'selectedAmbulance')) {
+        return String(p.selectedAmbulance || '').trim();
+    }
+    const legacy = p && p.assignedAmbulances && typeof p.assignedAmbulances === 'object'
+        ? p.assignedAmbulances[String(driverId)] : '';
+    return String(legacy || '').trim();
+}
+
+/* Pilihan armada dibagikan oleh semua driver untuk satu permintaan. */
+function setPermintaanAmbulance(id, ambulanceName) {
+    const list = getAllPermintaan();
+    const idx = list.findIndex(p => p && p.id === id);
+    if (idx === -1 || list[idx].status !== 'Diproses') return null;
+
+    const name = String(ambulanceName || '').trim();
+    if (name && !ambulanceListSource().some(amb => amb && amb.name === name)) return null;
+
+    const updated = Object.assign({}, list[idx], { selectedAmbulance: name });
+    list[idx] = updated;
+    return saveAllPermintaan(list) ? updated : null;
 }
 
 /* Driver menyetujui/mengonfirmasi tugas yang dibroadcast admin (status Diproses).
    Konfirmasi = driver ikut bertugas, jadi driver otomatis masuk daftar assignedDrivers
    (bisa lebih dari satu driver pada satu permintaan). */
-function confirmPermintaanTask(id, driverId) {
+function confirmPermintaanTask(id, driverId, ambulanceName) {
     const list = getAllPermintaan();
     const idx = list.findIndex(p => p && p.id === id);
     if (idx === -1 || !driverId) return null;
@@ -191,13 +225,34 @@ function confirmPermintaanTask(id, driverId) {
     // Tugas pengurusan jenazah tidak ditawarkan/diambil driver (bukan tugas ambulans).
     if (!isAmbulanPermintaan(p)) return null;
 
+    const driverKey = String(driverId);
+    const hasAmbulanceSelection = ambulanceName !== undefined && ambulanceName !== null &&
+        String(ambulanceName).trim() !== '';
+    const selectedAmbulance = hasAmbulanceSelection ? String(ambulanceName).trim() : '';
+    const driver = driverListSource().find(item => item && String(item.id) === driverKey);
+    const sharedSelection = String(p.selectedAmbulance || '').trim();
+    const chosenAmbulance = hasAmbulanceSelection ? selectedAmbulance
+        : (sharedSelection || String((driver && driver.ambulanceAssigned) || '').trim());
+    if (chosenAmbulance &&
+        !ambulanceListSource().some(amb => amb && amb.name === chosenAmbulance)) return null;
+    if (hasAmbulanceSelection && !driver) return null;
+    if (!chosenAmbulance) return null;
+
     const confirms = Object.assign({}, confirmMapOf(p));
-    confirms[String(driverId)] = new Date().toISOString();
+    confirms[driverKey] = new Date().toISOString();
 
     const assigned = assignedDriversOf(p);
-    if (assigned.indexOf(String(driverId)) === -1) assigned.push(String(driverId));
+    if (assigned.indexOf(driverKey) === -1) assigned.push(driverKey);
+    const assignedAmbulances = (p.assignedAmbulances && typeof p.assignedAmbulances === 'object')
+        ? Object.assign({}, p.assignedAmbulances) : {};
+    assignedAmbulances[driverKey] = chosenAmbulance;
 
-    list[idx] = Object.assign({}, p, { driverConfirms: confirms, assignedDrivers: assigned });
+    list[idx] = Object.assign({}, p, {
+        driverConfirms: confirms,
+        assignedDrivers: assigned,
+        assignedAmbulances: assignedAmbulances,
+        selectedAmbulance: chosenAmbulance
+    });
     return saveAllPermintaan(list) ? list[idx] : null;
 }
 
@@ -223,11 +278,11 @@ function confirmPermintaanSelesai(id, driverId) {
        saveAllPermintaan di bawah). Driver pada armada berbeda TIDAK ikut:
        tugas mereka di armada lain masih berjalan. */
     const me = driverListSource().find(d => d && String(d.id) === String(driverId));
-    const myAmb = me ? String(me.ambulanceAssigned || '') : '';
+    const myAmb = me ? ambulanceForDriverTask(p, driverId, me) : '';
     if (myAmb) {
         driverListSource().forEach(d => {
             if (!d || String(d.id) === String(driverId)) return;
-            if (String(d.ambulanceAssigned || '') !== myAmb) return;
+            if (ambulanceForDriverTask(p, d.id, d) !== myAmb) return;
             if (assignedDriversOf(p).indexOf(String(d.id)) === -1) return;
             if (!isPermintaanConfirmedBy(p, d.id)) return;
             if (done[String(d.id)]) return;
@@ -344,15 +399,30 @@ function syncAllDriverStatuses() {
 /* Tugas ambulan aktif yang dikerjakan kru sebuah armada — dipakai untuk
    menurunkan tujuan rute armada dari data tujuan permintaan. */
 function activeTaskForCrewOf(ambName) {
-    const crewIds = driverListSource()
-        .filter(d => d && d.ambulanceAssigned === ambName &&
-            d.status !== 'Off Duty' && driverHasActiveTask(d.id))
-        .map(d => String(d.id));
-    if (!crewIds.length) return null;
+    return getActivePermintaan().find(p => isAmbulanPermintaan(p) &&
+        assignedDriversOf(p).some(id => {
+            const driver = driverListSource().find(d => d && String(d.id) === id);
+            return driver && driver.status !== 'Off Duty' &&
+                isPermintaanConfirmedBy(p, id) && !isPermintaanDoneBy(p, id) &&
+                ambulanceForDriverTask(p, id, driver) === ambName;
+        })) || null;
+}
 
-    return getAllPermintaan().find(p => isAmbulanPermintaan(p) && p.status === 'Diproses' &&
-        assignedDriversOf(p).some(id => crewIds.indexOf(id) !== -1 &&
-            isPermintaanConfirmedBy(p, id) && !isPermintaanDoneBy(p, id))) || null;
+function ambulanceForDriverTask(p, driverId, driver) {
+    if (p && Object.prototype.hasOwnProperty.call(p, 'selectedAmbulance')) {
+        return permintaanAmbulanceOf(p, driverId);
+    }
+    return permintaanAmbulanceOf(p, driverId) ||
+        String((driver && driver.ambulanceAssigned) || '').trim();
+}
+
+function driverHasActiveTaskOnAmbulance(driverId, ambName) {
+    const driver = driverListSource().find(d => d && String(d.id) === String(driverId));
+    if (!driver || driver.status === 'Off Duty') return false;
+    return getActivePermintaan().some(p => isAmbulanPermintaan(p) &&
+        assignedDriversOf(p).indexOf(String(driverId)) !== -1 &&
+        isPermintaanConfirmedBy(p, driverId) && !isPermintaanDoneBy(p, driverId) &&
+        ambulanceForDriverTask(p, driverId, driver) === ambName);
 }
 
 function syncAmbulanceStatuses() {
@@ -363,8 +433,8 @@ function syncAmbulanceStatuses() {
     const updated = ambList.map(amb => {
         if (!amb) return amb;
         // Kru yang benar-benar bertugas (punya tugas ambulan aktif & bukan Off Duty).
-        const crew = driverListSource().filter(d => d && d.ambulanceAssigned === amb.name &&
-            d.status !== 'Off Duty' && driverHasActiveTask(d.id));
+        const crew = driverListSource().filter(d => d &&
+            driverHasActiveTaskOnAmbulance(d.id, amb.name));
         const status = crew.length ? 'En Route' : 'Standby';
 
         /* Tujuan rute mengikuti data tujuan pada permintaan yang sedang berjalan;

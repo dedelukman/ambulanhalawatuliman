@@ -587,7 +587,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 assigned.forEach(id => {
                     if (doneMap[id]) return;
                     const drv = drvById(id);
-                    const ambName = drv && drv.ambulanceAssigned;
+                    const ambName = ambulanceForDriverTask(p, id, drv);
                     if (ambName && ambNames.indexOf(ambName) === -1) ambNames.push(ambName);
                 });
                 const ambLine = ambNames.map(nm => {
