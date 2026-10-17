@@ -1,0 +1,312 @@
+body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Emergency Radar Ping Animations */
+        .pulse-red {
+            box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+            animation: pulse-red 1.8s infinite;
+        }
+        @keyframes pulse-red {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+            }
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 12px rgba(220, 38, 38, 0);
+            }
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+            }
+        }
+
+        .pulse-broadcast {
+            animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+        }
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.9; }
+            50% { transform: scale(1.15); opacity: 0.4; }
+            100% { transform: scale(0.95); opacity: 0.9; }
+        }
+
+        /* Mobile: sidebar ikut alur layout (menempel di kiri) sehingga peta
+           mendorong ke kanan, bukan tertumpuk di bawah sidebar. */
+        #sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+        @media (max-width: 767.98px) {
+            #sidebar {
+                display: none;
+            }
+            #sidebar.is-open {
+                display: flex;
+            }
+        }
+
+        /* Pastikan kontainer peta selalu punya ukuran, bahkan jika Tailwind gagal dimuat */
+        main {
+            position: relative;
+        }
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            width: 100%;
+            height: 100%;
+            min-height: 320px;
+            background-color: #020617;
+        }
+        #map-fallback-msg {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-align: center;
+            padding: 24px;
+            color: #94a3b8;
+            font-size: 13px;
+            z-index: 500;
+            background-color: #020617;
+        }
+
+        /* Custom Leaflet Map Popup Styling */
+        .leaflet-popup-content-wrapper {
+            background-color: #1e293b !important;
+            color: #f8fafc !important;
+            border-radius: 0.75rem !important;
+            border: 1px solid #334155;
+            padding: 4px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .leaflet-popup-tip {
+            background-color: #1e293b !important;
+        }
+        .leaflet-container {
+            font-family: 'Inter', sans-serif !important;
+        }
+
+        /* Marker Icon Custom Styling */
+        .custom-map-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            color: white;
+            border: 2px solid white;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+            transition: all 0.3s ease;
+        }
+
+
+/* ==========================================================================
+   Komponen bersama halaman mobile-first (beranda, login, admin)
+   Didesain untuk layar kecil lebih dulu, lalu menyesuaikan di >= 640px.
+   ========================================================================== */
+
+/* Tombol */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.9rem;
+    padding: 0.75rem 1.1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.15;
+    cursor: pointer;
+    border: 1px solid transparent;
+    text-align: center;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+}
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.btn-primary { background: #dc2626; color: #ffffff; box-shadow: 0 12px 24px -14px rgba(220, 38, 38, 0.9); }
+.btn-primary:hover { background: #b91c1c; }
+.btn-ghost { background: #1e293b; color: #e2e8f0; border-color: #334155; }
+.btn-ghost:hover { background: #334155; }
+.btn-block { width: 100%; }
+.btn-sm { padding: 0.45rem 0.7rem; font-size: 0.72rem; border-radius: 0.7rem; }
+.btn-danger { background: rgba(239, 68, 68, 0.14); color: #fca5a5; border-color: rgba(239, 68, 68, 0.4); }
+.btn-danger:hover { background: rgba(239, 68, 68, 0.28); }
+
+/* Kartu */
+.card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 1.1rem;
+    padding: 1rem;
+}
+@media (min-width: 640px) { .card { padding: 1.25rem; } }
+
+/* Form */
+.label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #cbd5e1;
+    margin-bottom: 0.35rem;
+}
+.input {
+    display: block;
+    width: 100%;
+    background: #020617;
+    border: 1px solid #334155;
+    border-radius: 0.8rem;
+    padding: 0.7rem 0.85rem;
+    font-size: 0.9rem;
+    color: #f1f5f9;
+    font-family: inherit;
+}
+.input::placeholder { color: #475569; }
+.input:focus { outline: none; border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.18); }
+.input.is-invalid { border-color: #ef4444; }
+textarea.input { min-height: 4.5rem; resize: vertical; }
+.field-error { display: none; color: #f87171; font-size: 0.7rem; margin-top: 0.3rem; }
+.field-error.is-visible { display: block; }
+
+/* Pilihan jenis permintaan (3 kartu pilihan) */
+.choice {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.8rem 0.4rem;
+    border-radius: 1rem;
+    border: 1px solid #334155;
+    background: #0f172a;
+    color: #cbd5e1;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+.choice i { font-size: 1.2rem; }
+.choice:hover { border-color: #475569; color: #f8fafc; }
+.choice[aria-checked="true"] {
+    border-color: #dc2626;
+    background: rgba(220, 38, 38, 0.12);
+    color: #fecaca;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
+}
+
+/* Tab (admin) */
+.tabs {
+    display: flex;
+    gap: 0.25rem;
+    background: #020617;
+    border: 1px solid #1e293b;
+    border-radius: 0.9rem;
+    padding: 0.25rem;
+}
+.tab {
+    flex: 1;
+    padding: 0.55rem 0.35rem;
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 0.65rem;
+    color: #94a3b8;
+    text-align: center;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+.tab:hover { color: #e2e8f0; }
+.tab.is-active { background: #1e293b; color: #f8fafc; }
+
+/* Badge status */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.63rem;
+    font-weight: 600;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+}
+.badge-slate { background: rgba(100, 116, 139, 0.18); color: #cbd5e1; border-color: rgba(148, 163, 184, 0.35); }
+.badge-green { background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border-color: rgba(16, 185, 129, 0.35); }
+.badge-red { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border-color: rgba(239, 68, 68, 0.35); }
+.badge-amber { background: rgba(245, 158, 11, 0.15); color: #fcd34d; border-color: rgba(245, 158, 11, 0.35); }
+.badge-blue { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border-color: rgba(59, 130, 246, 0.35); }
+.badge-purple { background: rgba(168, 85, 247, 0.15); color: #d8b4fe; border-color: rgba(168, 85, 247, 0.35); }
+
+/* Modal / bottom-sheet (di HP menempel di bawah, di layar lebar terpusat) */
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 3000;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+    background: rgba(2, 6, 23, 0.78);
+    backdrop-filter: blur(6px);
+    padding: 0;
+}
+.modal.is-open { display: flex; }
+.modal-panel {
+    width: 100%;
+    max-width: 34rem;
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 1.4rem 1.4rem 0 0;
+    padding: 1rem 1rem 1.5rem;
+    max-height: 92vh;
+    overflow-y: auto;
+}
+@media (min-width: 640px) {
+    .modal { align-items: center; padding: 1rem; }
+    .modal-panel { border-radius: 1.4rem; padding: 1.25rem 1.5rem 1.5rem; }
+}
+
+/* Baris data (daftar admin) */
+.row-card {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 1rem;
+    padding: 0.85rem;
+    transition: border-color 0.15s ease;
+}
+.row-card:hover { border-color: #334155; }
+
+/* Penolong kecil */
+.muted { color: #94a3b8; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+.divider { height: 1px; background: #1e293b; border: 0; margin: 0.75rem 0; }
+.sticky-top {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: #0f172a;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+}

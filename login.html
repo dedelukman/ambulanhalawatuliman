@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login — SI-Ambulans Relawan</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="js/tailwind.config.js"></script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center px-4 py-8">
+
+    <div class="w-full max-w-sm">
+
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 mb-5">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke beranda
+        </a>
+
+        <div class="card">
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-800 border border-slate-700 p-3 rounded-2xl text-purple-400" id="loginIcon">
+                    <i class="fa-solid fa-user-shield text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base text-slate-100 leading-tight" id="loginTitle">Login Admin</h1>
+                    <p class="text-xs text-slate-400" id="loginSubtitle">Panel kelola armada, driver & permintaan</p>
+                </div>
+            </div>
+
+            <hr class="divider">
+
+            <!-- Pilihan peran: Admin atau Driver -->
+            <div class="tabs" id="roleTabs" role="tablist" aria-label="Pilih peran login">
+                <button type="button" class="tab is-active" data-role="admin" role="tab" aria-selected="true">
+                    <i class="fa-solid fa-user-shield mr-1.5"></i>Admin
+                </button>
+                <button type="button" class="tab" data-role="driver" role="tab" aria-selected="false">
+                    <i class="fa-solid fa-id-card-clip mr-1.5"></i>Driver
+                </button>
+            </div>
+
+            <form id="loginForm" novalidate class="mt-3">
+                <div class="space-y-3">
+                    <div>
+                        <label class="label" for="loginUser" id="loginUserLabel">Nama pengguna</label>
+                        <input id="loginUser" class="input" type="text" autocomplete="username" placeholder="admin">
+                        <p class="field-error" data-error-for="loginUser" id="loginUserError">Nama pengguna wajib diisi.</p>
+                    </div>
+                    <div>
+                        <label class="label" for="loginPass" id="loginPassLabel">Kata sandi</label>
+                        <div class="relative">
+                            <input id="loginPass" class="input pr-11" type="password" autocomplete="current-password" placeholder="••••••••">
+                            <button type="button" id="togglePass" class="absolute inset-y-0 right-0 px-3 text-slate-400 hover:text-slate-200" title="Tampilkan kata sandi">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+                        </div>
+                        <p class="field-error" data-error-for="loginPass">Kata sandi wajib diisi.</p>
+                    </div>
+                </div>
+
+                <p id="loginError" class="hidden mt-3 text-xs text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">
+                    <i class="fa-solid fa-circle-xmark mr-1"></i> <span id="loginErrorText">Nama pengguna atau kata sandi salah.</span>
+                </p>
+
+                <button type="submit" class="btn btn-primary btn-block mt-4">
+                    <i class="fa-solid fa-right-to-bracket"></i> Masuk
+                </button>
+            </form>
+
+            <div class="mt-4 bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-[11px] text-slate-400 leading-relaxed" id="demoHint">
+                <span class="text-slate-300 font-semibold">Akun demo:</span>
+                username <span class="mono text-amber-400">admin</span> ·
+                sandi <span class="mono text-amber-400">admin123</span><br>
+                Login bersifat demo client-side (tersimpan di browser) — bukan keamanan untuk produksi.
+            </div>
+        </div>
+
+        <p class="text-center text-[11px] text-slate-600 mt-5">
+            SI-Ambulans Relawan · Markaz Halawatul Iman
+        </p>
+    </div>
+
+    <script src="js/store.js"></script>
+    <script src="js/geotracker.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/login.js"></script>
+</body>
+</html>
