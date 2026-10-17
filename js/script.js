@@ -522,6 +522,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
         }
 
+        function taskDetailSummary(p) {
+            const parts = permintaanTaskDetails(p)
+                .map(item => item.label + ': ' + item.value);
+            if (!parts.length) return '';
+            return '<p class="text-[10px] text-slate-400 mt-1">' +
+                parts.map(escTask).join(' · ') + '</p>';
+        }
+
         function renderActiveTasks() {
             if (typeof getAllPermintaan !== 'function') return;
             const container = document.getElementById('task-list-container');
@@ -600,6 +608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     '</div>' +
                     '<p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-location-dot mr-1 text-slate-500"></i>' +
                         escTask(p.lokasi || '-') + '</p>' +
+                    taskDetailSummary(p) +
                     '<p class="text-[10px] text-slate-500 mt-0.5">Pemohon: ' + escTask(p.nama || '-') + '</p>' +
                     '<div class="flex items-center gap-1.5 flex-wrap mt-2 pt-2 border-t border-slate-700/40">' + chips + '</div>' +
                     (ambLine ? '<div class="flex items-center gap-1.5 flex-wrap mt-1.5" title="Armada yang ditugaskan mengikuti status permintaan">' + ambLine + '</div>' : '') +

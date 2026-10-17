@@ -250,6 +250,19 @@ function isAmbulanPermintaan(p) {
     return j.indexOf('ambul') !== -1;     // 'Pengurusan Jenazah' tidak mengandung 'ambul'
 }
 
+/* Ringkasan detail rute/tugas yang dipakai dashboard dan panel driver. */
+function permintaanTaskDetails(p) {
+    const detail = p && p.detail && typeof p.detail === 'object' ? p.detail : {};
+    const person = detail.namaJenazah || detail.namaPasien;
+    return [
+        { label: detail.namaJenazah ? 'Jenazah' : 'Pasien', value: person },
+        { label: 'Jadwal', value: detail.jadwalAmbulan },
+        { label: 'Jemput', value: detail.penjemputan },
+        { label: 'Tujuan', value: detail.tujuan }
+    ].filter(item => item.value !== undefined && item.value !== null &&
+        String(item.value).trim() !== '');
+}
+
 /* Notifikasi tugas untuk satu driver: hanya permintaan ambulan berstatus
    Diproses yang belum dikonfirmasi driver tersebut. */
 function getPermintaanNotificationsForDriver(driverId) {

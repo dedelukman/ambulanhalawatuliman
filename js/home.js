@@ -1,19 +1,21 @@
 /* home.js — logika halaman utama (index.html)
    - info singkat (jumlah armada / driver dari data.js)
-   - pemilihan jenis permintaan (Jenazah / Ambulans / Keduanya)
+   - pemilihan jenis permintaan (Pengurusan Jenazah / Ambulans / Ambulan Jenazah / Keduanya)
    - validasi + penyimpanan permintaan ke localStorage (lihat store.js)
    - cek status permintaan berdasarkan kode */
 
 const TYPE_LABELS = {
     jenazah: 'Pengurusan Jenazah',
-    ambulan: 'Permintaan Ambulans',
-    dua: 'Jenazah + Ambulans'
+    ambulan: 'Permintaan Ambulan Pasien',
+    'ambulan-jenazah': 'Permohonan Ambulan Jenazah (tanpa pengurusan)',
+    dua: 'Ambulan + Pengurusan Jenazah'
 };
 
 const TYPE_HINTS = {
     jenazah: 'Jenis dipilih: <strong class="text-slate-200">Formulir Permohonan Pengurusan Jenazah</strong> — Yayasan Halawatul Iman.',
     ambulan: 'Jenis dipilih: <strong class="text-slate-200">Formulir Permohonan Ambulan Pasien</strong> — pengantaran pasien, bukan tindakan medis.',
-    dua: 'Jenis dipilih: <strong class="text-slate-200">Formulir Pengurusan Jenazah + Permohonan Ambulans</strong> — khusus pasien yang meninggal.'
+    'ambulan-jenazah': 'Jenis dipilih: <strong class="text-slate-200">Formulir Permohonan Ambulan Jenazah</strong> — hanya pengantaran, tanpa pengurusan jenazah.',
+    dua: 'Jenis dipilih: <strong class="text-slate-200">Formulir Ambulan + Pengurusan Jenazah</strong> — khusus pasien yang meninggal.'
 };
 
 let selectedType = 'ambulan';
@@ -61,16 +63,29 @@ function selectType(type) {
         btn.setAttribute('aria-checked', String(btn.getAttribute('data-type') === type));
     });
 
-    const showJenazah = (type === 'jenazah' || type === 'dua');
+    const showJenazah = (type === 'jenazah' || type === 'dua' || type === 'ambulan-jenazah');
     const showAmbulan = (type === 'ambulan');
+    const showAmbulanJenazah = (type === 'ambulan-jenazah');
     const showDua = (type === 'dua');
     toggleGroup('groupJenazah', showJenazah);
     toggleGroup('groupAmbulan', showAmbulan);
+    toggleGroup('groupAmbulanJenazah', showAmbulanJenazah);
     toggleGroup('groupDua', showDua);
+    toggleGroup('jDeathWrap', type !== 'ambulan-jenazah');
+    toggleGroup('jReqWrap', type !== 'ambulan-jenazah');
+    toggleGroup('jFuneralDetails', type !== 'ambulan-jenazah');
+
+    const jGroupTitle = document.getElementById('jGroupTitle');
+    if (jGroupTitle) {
+        jGroupTitle.innerHTML = type === 'ambulan-jenazah'
+            ? '<i class="fa-solid fa-truck-medical mr-1.5"></i>Data Jenazah untuk Pengantaran'
+            : '<i class="fa-solid fa-praying-hands mr-1.5"></i>Data Pengurusan Jenazah';
+    }
 
     // Catatan penting mengikuti formulir yang dipilih
     toggleGroup('noteJenazah', type === 'jenazah');
     toggleGroup('noteAmbulan', type === 'ambulan');
+    toggleGroup('noteAmbulanJenazah', showAmbulanJenazah);
     toggleGroup('noteDua', type === 'dua');
 
     // Label "hubungan" menyesuaikan objek permohonan
@@ -96,6 +111,7 @@ function requiredFields(type) {
     if (type === 'ambulan') fields.push('aPatientName', 'aHome', 'aReqDate', 'aPickup', 'aDest');
     if (type === 'jenazah') fields.push('jName', 'jHome', 'jDeathDate', 'jReqDate', 'jBurial');
     if (type === 'dua') fields.push('jName', 'jHome', 'jDeathDate', 'jReqDate', 'jBurial', 'dAmbDate');
+    if (type === 'ambulan-jenazah') fields.push('jName', 'jHome', 'ajReqDate', 'ajPickup', 'ajDest');
     return fields;
 }
 
@@ -206,6 +222,18 @@ function buildDetail(type) {
         detail.tpu = fieldValue('jBurial');
     }
 
+    if (type === 'ambulan-jenazah') {
+        detail.namaJenazah = fieldValue('jName');
+        detail.kelamin = fieldValue('jGender');
+        detail.umur = fieldValue('jAge');
+        detail.penyebab = fieldValue('jRiwayat');
+        detail.rumahDuka = fieldValue('jHome');
+        detail.maps = fieldValue('jMaps');
+        detail.jadwalAmbulan = scheduleText('ajReq');
+        detail.penjemputan = fieldValue('ajPickup');
+        detail.tujuan = fieldValue('ajDest');
+    }
+
     if (type === 'dua') {
         detail.jadwalAmbulan = scheduleText('dAmb');
         detail.parkirAmbulan = fieldValue('dPark');
@@ -217,6 +245,7 @@ function buildDetail(type) {
 /* Alamat utama yang ikut tampil di daftar admin, sesuai jenis formulir. */
 function resolveLocation(type) {
     if (type === 'ambulan') return fieldValue('aPickup') || fieldValue('aHome');
+    if (type === 'ambulan-jenazah') return fieldValue('ajPickup');
     return fieldValue('jHome');
 }
 

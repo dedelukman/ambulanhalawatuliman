@@ -124,6 +124,14 @@ function renderTasks() {
     empty.classList.toggle('hidden', mine.length > 0);
 }
 
+function taskDetailSummary(p) {
+    const parts = permintaanTaskDetails(p)
+        .map(item => item.label + ': ' + item.value);
+    if (!parts.length) return '';
+    return '<p class="text-[10px] text-slate-400 mt-1">' +
+        parts.map(escapeHtml).join(' · ') + '</p>';
+}
+
 /* Kartu notifikasi: tugas broadcast yang belum dikonfirmasi driver ini. */
 function renderIncomingTask(p) {
     const assigned = (typeof assignedDriversOf === 'function') ? assignedDriversOf(p) : [];
@@ -138,6 +146,7 @@ function renderIncomingTask(p) {
         '</div>' +
         '<p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>' +
             escapeHtml(p.lokasi || '-') + '</p>' +
+        taskDetailSummary(p) +
         '<p class="text-[11px] text-slate-500">Pemohon: ' + escapeHtml(p.nama || '-') +
             ' · <span class="mono">' + escapeHtml(p.hp || '-') + '</span></p>' +
         '<p class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-users mr-1"></i>' +
@@ -174,6 +183,7 @@ function renderTaskRow(p) {
         '</div>' +
         '<p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-location-dot mr-1"></i>' +
             escapeHtml(p.lokasi || '-') + '</p>' +
+        taskDetailSummary(p) +
         '<p class="text-[11px] text-slate-500">Pemohon: ' + escapeHtml(p.nama || '-') +
             ' · <span class="mono">' + escapeHtml(p.hp || '-') + '</span></p>' +
         '<p class="text-[10px] text-slate-500 mt-0.5"><i class="fa-solid fa-users mr-1"></i>' +
