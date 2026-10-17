@@ -208,24 +208,12 @@
 
         <!-- Bottom Map Map Legend -->
         <div class="absolute bottom-6 right-4 z-[1000] bg-slate-900/90 border border-slate-800 p-3 rounded-xl shadow-xl backdrop-blur text-xs hidden sm:block">
-            <div class="font-semibold text-slate-300 mb-2 border-b border-slate-800 pb-1">Legend Marker Peta</div>
-            <div class="space-y-1.5">
-                <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span>
-                    <span class="text-slate-300">Ambulans 01 (Sedang Bertugas)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-3 h-3 rounded-full bg-emerald-600 inline-block"></span>
-                    <span class="text-slate-300">Ambulans 02 (Standby Markaz)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-purple-500 inline-block"></span>
-                    <span class="text-slate-300">Driver Inti (Suwarjiyo & Andi Harsoyo)</span>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
-                    <span class="text-slate-300">Driver Pendukung (5 Personil)</span>
-                </div>
+            <div class="font-semibold text-slate-300 mb-2 border-b border-slate-800 pb-1 flex items-center justify-between gap-4">
+                <span>Legend Marker Peta</span>
+                <span class="text-[9px] font-normal text-emerald-400"><i class="fa-solid fa-circle text-[6px] mr-1"></i>Realtime</span>
+            </div>
+            <div id="map-legend-items" class="space-y-1.5">
+                <div class="text-slate-500">Memuat data marker...</div>
             </div>
         </div>
     </main>

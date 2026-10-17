@@ -177,6 +177,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Generate Icon Leaflet Markers
+        function isCoreDriver(driver) {
+            return driver.roleTitle === 'Driver Inti' || driver.roleCategory === 'Inti';
+        }
+
         function createCustomIcon(type, data) {
             let bgColor = 'bg-slate-600';
             let iconClass = 'fa-location-dot';
@@ -189,11 +193,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     bgColor = 'bg-emerald-600';
                 }
             } else if (type === 'driver') {
-                iconClass = data.roleCategory === 'Inti' ? 'fa-user-shield' : 'fa-user';
+                iconClass = isCoreDriver(data) ? 'fa-user-shield' : 'fa-user';
                 if (data.status === 'Sedang Bertugas') {
                     bgColor = 'bg-red-600';
                 } else if (data.status === 'Standby') {
-                    bgColor = data.roleCategory === 'Inti' ? 'bg-purple-600' : 'bg-blue-600';
+                    bgColor = isCoreDriver(data) ? 'bg-purple-600' : 'bg-blue-600';
                 } else {
                     bgColor = 'bg-slate-600';
                 }
@@ -215,6 +219,67 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        function updateMapLegend() {
+            const container = document.getElementById('map-legend-items');
+            if (!container) return;
+
+            const mappedAmbulances = ambulances.filter(hasValidCoords);
+            const mappedDrivers = drivers.filter(hasValidCoords);
+            const driverStandby = mappedDrivers.filter(driver => driver.status === 'Standby');
+            const driverOther = mappedDrivers.filter(driver =>
+                driver.status !== 'Standby' && driver.status !== 'Sedang Bertugas');
+            const entries = [
+                {
+                    color: 'bg-red-600',
+                    label: 'Ambulans bertugas',
+                    items: mappedAmbulances.filter(ambulance => ambulance.status === 'En Route')
+                },
+                {
+                    color: 'bg-emerald-600',
+                    label: 'Ambulans standby',
+                    items: mappedAmbulances.filter(ambulance => ambulance.status !== 'En Route')
+                },
+                {
+                    color: 'bg-red-600',
+                    label: 'Driver sedang bertugas',
+                    items: mappedDrivers.filter(driver => driver.status === 'Sedang Bertugas')
+                },
+                {
+                    color: 'bg-purple-600',
+                    label: 'Driver inti standby',
+                    items: driverStandby.filter(isCoreDriver)
+                },
+                {
+                    color: 'bg-blue-600',
+                    label: 'Driver pendukung standby',
+                    items: driverStandby.filter(driver => !isCoreDriver(driver))
+                },
+                {
+                    color: 'bg-slate-600',
+                    label: 'Driver status lainnya',
+                    items: driverOther
+                }
+            ].filter(entry => entry.items.length > 0);
+
+            if (!entries.length) {
+                container.innerHTML = '<div class="text-slate-500">Belum ada marker dengan koordinat valid.</div>';
+                return;
+            }
+
+            container.innerHTML = entries.map(entry => {
+                const names = entry.items.map(item => escTask(item.name)).join(', ');
+                return `
+                    <div class="flex items-start gap-2 max-w-64" title="${names}">
+                        <span class="w-2.5 h-2.5 mt-0.5 rounded-full ${entry.color} inline-block shrink-0"></span>
+                        <div class="min-w-0">
+                            <div class="text-slate-300">${entry.label} (${entry.items.length})</div>
+                            <div class="text-[10px] text-slate-500 truncate">${names}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
         // Validasi koordinat sebelum membuat/memindah marker — driver atau armada
         // tanpa lat/lng (mis. belum pernah kirim GPS) tidak boleh menjatuhkan render peta.
         function hasValidCoords(item) {
@@ -224,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         function updateAllMarkers() {
+            updateMapLegend();
             if (!map) return;
             // Render Ambulance Markers
             ambulances.forEach(amb => {
@@ -245,7 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong class="text-slate-400">Plat Nomor:</strong> <span class="font-mono bg-slate-800 px-1.5 py-0.5 rounded text-slate-200">${amb.plate}</span></p>
                         <p><strong class="text-slate-400">Driver Tugas:</strong> <br/><span class="text-emerald-400 font-medium">${crewNames.join(' & ')}</span></p>
                         <p><strong class="text-slate-400">Tujuan Rute:</strong> ${amb.destination || '–'}</p>
-                        <p><strong class="text-slate-400">Kecepatan:</strong> ${amb.speed}</p>
+                        
                         <div class="pt-2 border-t border-slate-700 flex gap-2">
                             <a href="tel:${amb.phone}" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-1 rounded text-center block">
                                 <i class="fa-solid fa-phone"></i> Hubungi Armada
@@ -273,11 +339,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const popupContent = `
                     <div class="p-2 w-56 text-xs space-y-1.5">
                         <div class="flex items-center justify-between border-b border-slate-700 pb-1.5 mb-2">
-                            <span class="font-bold text-sm ${drv.roleCategory === 'Inti' ? 'text-purple-400' : 'text-blue-400'} flex items-center gap-1.5">
-                                <i class="fa-solid ${drv.roleCategory === 'Inti' ? 'fa-user-shield' : 'fa-user'}"></i> ${drv.name}
+                            <span class="font-bold text-sm ${isCoreDriver(drv) ? 'text-purple-400' : 'text-blue-400'} flex items-center gap-1.5">
+                                <i class="fa-solid ${isCoreDriver(drv) ? 'fa-user-shield' : 'fa-user'}"></i> ${drv.name}
                             </span>
-                            <span class="text-[10px] px-2 py-0.5 rounded-full ${drv.roleCategory === 'Inti' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}">
-                                Driver ${drv.roleCategory}
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${isCoreDriver(drv) ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-blue-500/20 text-blue-300 border border-blue-500/30'}">
+                                ${escTask(drv.roleTitle || drv.roleCategory || 'Driver')}
                             </span>
                         </div>
                         <p class="italic text-slate-400">${drv.roleTitle}</p>
