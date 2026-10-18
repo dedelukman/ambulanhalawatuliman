@@ -160,9 +160,8 @@ function getAllPermintaan() {
 
 function saveAllPermintaan(list) {
     const ok = storeWrite(STORE_KEYS.PERMINTAAN, list);
-    /* Sinkron otomatis: setiap perubahan permintaan (konfirmasi, selesai, status,
-       hapus, lepas tugas) langsung diselaraskan ke status driver & armada,
-       sehingga dashboard/admin selalu menampilkan data yang sama. */
+    /* Sinkron otomatis: setiap perubahan permintaan langsung menyelaraskan status
+       driver/armada dan daftar driver/armada yang sedang bertugas. */
     if (ok) syncAllDriverStatuses();
     return ok;
 }
@@ -487,9 +486,11 @@ function getPermintaanForDriver(driverId) {
     });
 }
 
-/* ---------- Sinkron status driver & armada dengan tugas permintaan ----------
+/* ---------- Sinkron data driver & armada dengan tugas permintaan ----------
    Aturan:
    - Driver yang mengonfirmasi tugas aktif        -> status 'Sedang Bertugas'
+   - Ambulans tugas aktif                        -> ambulanceAssigned pada driver
+   - Driver tugas aktif                          -> driversAssigned pada ambulans
    - Selesai / tugas ditutup admin / tanpa tugas  -> kembali 'Standby'
    - Armada yang dipakai driver sedang bertugas   -> 'En Route', selain itu 'Standby'
    - Status manual 'Off Duty' TIDAK pernah diubah otomatis.
@@ -517,13 +518,40 @@ function syncDriverStatus(driverId) {
     syncAmbulanceStatuses();
 }
 
-/* Samakan SEMUA driver (dipakai setiap perubahan data permintaan). */
+/* Samakan semua driver dan daftar kru armada dari tugas yang masih aktif. */
 function syncAllDriverStatuses() {
-    driverListSource().forEach(d => {
-        if (!d || d.status === 'Off Duty') return;
-        const desired = desiredDriverStatus(d.id);
-        if (d.status !== desired) patchDriverRecord(d.id, { status: desired });
+    const activeAmbulanceByDriver = new Map();
+    const drivers = driverListSource();
+    getActivePermintaan().filter(isAmbulanPermintaan).forEach(p => {
+        assignedDriversOf(p).forEach(driverId => {
+            if (!isPermintaanConfirmedBy(p, driverId) || isPermintaanDoneBy(p, driverId) ||
+                activeAmbulanceByDriver.has(driverId)) return;
+            const driver = drivers.find(d => d && String(d.id) === driverId);
+            if (!driver || driver.status === 'Off Duty') return;
+            const ambulanceName = ambulanceForDriverTask(p, driverId, driver);
+            if (ambulanceName) activeAmbulanceByDriver.set(driverId, ambulanceName);
+        });
     });
+
+    let changed = false;
+    const updated = drivers.map(d => {
+        if (!d) return d;
+        const next = Object.assign({}, d, {
+            ambulanceAssigned: activeAmbulanceByDriver.get(String(d.id)) || 'Tidak Ada'
+        });
+        if (d.status !== 'Off Duty') next.status = desiredDriverStatus(d.id);
+        const driverChanged = next.status !== d.status ||
+            next.ambulanceAssigned !== d.ambulanceAssigned;
+        if (driverChanged) changed = true;
+        return driverChanged ? next : d;
+    });
+    if (changed) {
+        storeWrite(STORE_KEYS.DRIVERS, updated);
+        if (typeof window.drivers !== 'undefined' && Array.isArray(window.drivers)) {
+            window.drivers.length = 0;
+            updated.forEach(d => window.drivers.push(d));
+        }
+    }
     syncAmbulanceStatuses();
 }/* Status armada diturunkan dari driver yang menempel padanya:
    ada driver bertugas (tugas aktif, belum selesai) -> En Route, else Standby. */
@@ -566,6 +594,7 @@ function syncAmbulanceStatuses() {
         // Kru yang benar-benar bertugas (punya tugas ambulan aktif & bukan Off Duty).
         const crew = driverListSource().filter(d => d &&
             driverHasActiveTaskOnAmbulance(d.id, amb.name));
+        const driversAssigned = crew.map(d => String(d.name || '').trim()).filter(Boolean);
         const status = crew.length ? 'En Route' : 'Standby';
 
         /* Tujuan rute mengikuti data tujuan pada permintaan yang sedang berjalan;
@@ -599,6 +628,7 @@ function syncAmbulanceStatuses() {
         const next = Object.assign({}, amb, {
             status: status,
             destination: destination,
+            driversAssigned: driversAssigned,
             gpsFromDriver: gpsFromDriver
         });
         if (typeof defLat === 'number' && isFinite(defLat)) {
@@ -608,8 +638,12 @@ function syncAmbulanceStatuses() {
             if (gpsFromDriver || typeof defLat === 'number') { next.lat = lat; next.lng = lng; }
         }
 
-        const sama = ['status', 'destination', 'gpsFromDriver', 'defaultLat', 'defaultLng', 'lat', 'lng']
-            .every(k => next[k] === amb[k]);
+        const currentDrivers = Array.isArray(amb.driversAssigned) ? amb.driversAssigned : [];
+        const sameDrivers = currentDrivers.length === driversAssigned.length &&
+            currentDrivers.every((name, index) => name === driversAssigned[index]);
+        const sama = sameDrivers &&
+            ['status', 'destination', 'gpsFromDriver', 'defaultLat', 'defaultLng', 'lat', 'lng']
+                .every(k => next[k] === amb[k]);
         if (sama) return amb;
         changed = true;
         return next;
