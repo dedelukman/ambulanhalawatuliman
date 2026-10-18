@@ -10,7 +10,7 @@
         let broadcastTimerInterval = null;
 
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
             initMap();
             renderAmbulanceList();
             renderDriverList();
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
             updateDriverSimCards();
             updateStatsCounters();
 
-            // Pantau lokasi terbaru dari halaman driver (localStorage)
+            // Pantau lokasi driver yang tersimpan di Firestore.
             refreshDriverLocations();
             setInterval(refreshDriverLocations, 5000);
 
@@ -33,12 +33,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update seketika bila halaman ini juga menjalankan geotracker
             // (sesi driver aktif di dashboard) — tanpa menunggu interval 5 detik.
             window.addEventListener('si-geo-update', () => refreshDriverLocations());
+            document.addEventListener('firestore:update', event => {
+                const key = event.detail && event.detail.key;
+                if (key === STORE_KEYS.DRIVERS) refreshDriverLocations();
+                if (key === STORE_KEYS.AMBULANCES) refreshAmbulanceData();
+                if (key === STORE_KEYS.PERMINTAAN) renderActiveTasks();
+            });
 
             // Sembunyikan pintu masuk panel lain sesuai peran login
             if (typeof applyRoleNav === 'function') applyRoleNav();
         });
 
-        /* Halaman driver (driver.html) menulis lat/lng terbaru ke localStorage;
+        /* Halaman driver (driver.html) menulis lat/lng terbaru ke Firestore;
            fungsi ini membaca ulang data driver tiap 5 detik dan me-render ulang
            marker + daftar bila ada perubahan. */
         let lastDriverSnapshot = null;
@@ -46,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function refreshDriverLocations() {
             if (typeof STORE_KEYS === 'undefined' || typeof storeRead !== 'function') return;
             const stored = storeRead(STORE_KEYS.DRIVERS, null);
-            if (!Array.isArray(stored) || !stored.length) return;
+            if (!Array.isArray(stored)) return;
 
             const snapshot = JSON.stringify(stored);
             if (snapshot === lastDriverSnapshot) return;
@@ -74,13 +80,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         /* Data armada (status En Route/Standy + nama driver bertugas) disinkronkan
            oleh store.js setiap kali data permintaan berubah. Fungsi ini membaca ulang
-           localStorage tiap 5 detik dan me-render ulang bila ada perubahan. */
+           Firestore tiap 5 detik dan me-render ulang bila ada perubahan. */
         let lastAmbulanceSnapshot = null;
 
         function refreshAmbulanceData() {
             if (typeof STORE_KEYS === 'undefined' || typeof storeRead !== 'function') return;
             const stored = storeRead(STORE_KEYS.AMBULANCES, null);
-            if (!Array.isArray(stored) || !stored.length) return;
+            if (!Array.isArray(stored)) return;
 
             const snapshot = JSON.stringify(stored);
             if (snapshot === lastAmbulanceSnapshot) return;

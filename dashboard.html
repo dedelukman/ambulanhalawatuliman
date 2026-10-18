@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard Tim Relawan Ambulans</title>
 
+      <!-- di setiap HTML, paling atas -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/store.js"></script>
+    <script>
+        window.APP_PRE_DATA_SCRIPTS = ['js/geotracker.js'];
+        window.APP_POST_DATA_SCRIPTS = ['js/script.js'];
+    </script>
+    <script src="js/bootstrap.js"></script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="js/tailwind.config.js"></script>
@@ -21,7 +33,6 @@
 
     <link rel="stylesheet" href="styles.css">
 
-    <script src="js/store.js"></script>
     <script>
         /* Dashboard ambulans hanya boleh dilihat admin atau driver yang sudah login. */
         var __adminOk = typeof isAdminLoggedIn === 'function' && isAdminLoggedIn();
@@ -240,7 +251,7 @@
                     <label class="block text-xs text-slate-300 mb-1">Pilih Armada Ambulans yang Akan Digunakan</label>
                     <select id="bcAmbulance" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-red-500">
                         <option value="">Memuat data armada…</option>
-                        <!-- Opsi diisi dari data armada terkini (localStorage) saat modal dibuka: lihat populateBroadcastAmbulances() di js/script.js -->
+                        <!-- Opsi diisi dari data armada terkini dari Firestore saat modal dibuka. -->
                     </select>
                 </div>
 
@@ -361,8 +372,5 @@
         </div>
     </div>
 
-    <script src="js/data.js"></script>
-    <script src="js/geotracker.js"></script>
-    <script src="js/script.js"></script>
 </body>
 </html>

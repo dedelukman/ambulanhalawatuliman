@@ -1,13 +1,14 @@
 /* driver.js — logika halaman panel driver (driver.html)
    - Menampilkan info sesi driver (login ID + PIN, lihat store.js)
-   - Mengubah status penugasan (langsung tersimpan ke localStorage)
+   - Mengubah status penugasan (langsung tersimpan ke Firestore)
    - Tracking GPS TIDAK di sini: modul js/geotracker.js mengaktifkan watchPosition
      otomatis di SEMUA halaman saat sesi driver aktif. Halaman ini hanya
      menampilkan status/hasilnya lewat event si-geo-* dari geotracker. */
 
 let driverSession = null;
+let lastNotifIds = null;
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     // Guard cadangan (bila JS di <head> tidak jalan karena alasan tertentu)
     if (typeof isDriverLoggedIn !== 'function' || !isDriverLoggedIn()) {
         window.location.replace('login.html?role=driver');
@@ -24,8 +25,16 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTasks();
     // Perbarui notifikasi & daftar tugas tiap 5 detik agar broadcast admin langsung muncul
     setInterval(renderTasks, 5000);
-    window.addEventListener('storage', ev => {
-        if (ev.key === STORE_KEYS.PERMINTAAN || ev.key === STORE_KEYS.AMBULANCES) renderTasks();
+    document.addEventListener('firestore:update', event => {
+        const key = event.detail && event.detail.key;
+        if (key === STORE_KEYS.PERMINTAAN || key === STORE_KEYS.AMBULANCES ||
+            key === STORE_KEYS.DRIVERS) {
+            renderProfile();
+            renderTasks();
+        }
+        if (key === STORE_KEYS.PERMINTAAN && event.detail.failed) {
+            toast('Konfirmasi tugas gagal disimpan ke Firestore. Periksa koneksi dan Firestore Rules.');
+        }
     });
 });
 
@@ -88,8 +97,6 @@ function setupLogout() {
    notifikasi tugas -> driver yang sanggup menekan Konfirmasi (bisa lebih dari
    satu driver) -> tugas muncul di dashboard lacak ambulan -> bila sudah selesai,
    driver menekan Konfirmasi Selesai. */
-let lastNotifIds = null;   // untuk toast tugas baru (pertama kali = senyap)
-
 function renderTasks() {
     const notifBox = document.getElementById('taskNotifList');
     const notifEmpty = document.getElementById('taskNotifEmpty');
@@ -291,6 +298,12 @@ function setupTaskActions() {
             // Sinkron tampilan profil: status driver & armada ikut diperbarui
             // oleh store.js (Sedang Bertugas saat konfirmasi, Standby saat selesai).
             renderProfile();
+        } else {
+            toast(action === 'confirm-task'
+                ? 'Konfirmasi gagal. Pastikan tugas masih Diproses, pilih ambulan yang tersedia, lalu coba lagi.'
+                : (action === 'finish-task'
+                    ? 'Tugas belum dapat ditandai selesai. Perbarui halaman dan coba lagi.'
+                    : 'Konfirmasi tidak dapat dibatalkan. Perbarui halaman dan coba lagi.'));
         }
     };
 

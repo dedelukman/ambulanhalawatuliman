@@ -1,7 +1,7 @@
 /* home.js — logika halaman utama (index.html)
    - info singkat (jumlah armada / driver dari data.js)
    - pemilihan jenis permintaan (Pengurusan Jenazah / Ambulans / Ambulan Jenazah / Keduanya)
-   - validasi + penyimpanan permintaan ke localStorage (lihat store.js)
+   - validasi + penyimpanan permintaan ke Firestore (lihat store.js)
    - cek status permintaan berdasarkan kode */
 
 const TYPE_LABELS = {
@@ -20,13 +20,18 @@ const TYPE_HINTS = {
 
 let selectedType = 'ambulan';
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     renderStats();
     setupChoices();
     setupForm();
     setupCheckStatus();
     setupAuthVisibility();
     if (typeof applyRoleNav === 'function') applyRoleNav();
+});
+
+document.addEventListener('firestore:update', event => {
+    if (event.detail && (event.detail.key === STORE_KEYS.AMBULANCES ||
+        event.detail.key === STORE_KEYS.DRIVERS)) renderStats();
 });
 
 /* ---------- Info singkat ---------- */
@@ -185,7 +190,7 @@ function onSubmitRequest(e) {
 
     const saved = addPermintaan(item);
     if (!saved) {
-        alert('Gagal menyimpan permintaan. Pastikan penyimpanan browser (localStorage) diizinkan.');
+        alert('Gagal menyimpan permintaan. Periksa koneksi dan akses Firestore.');
         return;
     }
 

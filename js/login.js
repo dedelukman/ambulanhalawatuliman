@@ -44,7 +44,7 @@ const ROLE_META = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     setupRoleTabs();
 
     // Peran eksklusif: bila kedua sesi sempat terpasang (data lama), reset keduanya.

@@ -2,7 +2,7 @@
    - Pemasukan: infak, sedekah, donasi, dll.
    - Pengeluaran: bensin, konsumsi driver, dll.
    - Hanya bisa diakses sesi admin atau driver (guard di kas.html + di sini)
-   - Data di localStorage via utilitas store.js: getAllKas, addKas, removeKas, filterKasByRange */
+   - Data di Firestore via utilitas store.js: getAllKas, addKas, removeKas, filterKasByRange */
 
 const KAS_CATEGORIES = {
     masuk: ['Infak', 'Sedekah', 'Donasi', 'Infaq Jumat', 'Hasil Kegiatan', 'Lainnya'],
@@ -14,7 +14,7 @@ let rangeTo = '';
 let currentRole = '';   // 'admin' | 'driver'
 let currentName = '';
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     // Guard ulang: tanpa sesi admin/driver, kembalikan ke login (kirim tujuan awal)
     const isAdmin = typeof isAdminLoggedIn === 'function' && isAdminLoggedIn();
     const isDrv = typeof isDriverLoggedIn === 'function' && isDriverLoggedIn();
@@ -46,6 +46,9 @@ document.addEventListener('DOMContentLoaded', () => {
     setupLogout();
     setupExport();
     render();
+    document.addEventListener('firestore:update', event => {
+        if (event.detail && event.detail.key === STORE_KEYS.KAS) render();
+    });
 });
 
 function setupForm() {

@@ -4,7 +4,7 @@
 
    Cara kerja:
    - DOMContentLoaded: bila isDriverLoggedIn() -> watchPosition().
-   - Setiap posisi: patchDriverRecord() ke localStorage (si_drivers),
+   - Setiap posisi: patchDriverRecord() ke Firestore (si_drivers),
      sehingga dashboard/admin membaca perubahan (lihat js/script.js).
    - Event DOM untuk UI halaman driver (js/driver.js):
        si-geo-state   {active, reason}          perubahan status aktif/nonaktif
@@ -115,7 +115,7 @@ function onGeoError(err) {
     emitGeo('si-geo-error', { code: err ? err.code : null, message: message, stopped: stopped });
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     // Login driver = lokasi otomatis aktif di halaman ini
     startGeoTracking();
 });

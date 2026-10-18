@@ -6,6 +6,18 @@
     <title>Riwayat Permintaan — SI-Ambulans Relawan</title>
     <meta name="description" content="Daftar permintaan ambulans & pengurusan jenazah beserta filter rentang waktu.">
 
+    <!-- di setiap HTML, paling atas -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
+    <script src="js/store.js"></script>
+    <script>
+        window.APP_PRE_DATA_SCRIPTS = ['js/geotracker.js', 'js/report.js'];
+        window.APP_POST_DATA_SCRIPTS = ['js/permintaan.js'];
+    </script>
+    <script src="js/bootstrap.js"></script>
+
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="js/tailwind.config.js"></script>
@@ -117,14 +129,9 @@
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
             SI-Ambulans Relawan · Markaz Halawatul Iman<br>
-            Data permintaan tersimpan di browser ini (localStorage).
+            Data permintaan tersimpan di Firestore dan tersinkron antar perangkat.
         </footer>
     </div>
 
-    <script src="js/store.js"></script>
-    <script src="js/data.js"></script>
-    <script src="js/geotracker.js"></script>
-    <script src="js/report.js"></script>
-    <script src="js/permintaan.js"></script>
 </body>
 </html>

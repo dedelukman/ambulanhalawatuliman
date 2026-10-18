@@ -1,5 +1,5 @@
 /* permintaan.js — halaman riwayat permintaan (permintaan.html)
-   - Menampilkan semua permintaan dari localStorage
+   - Menampilkan semua permintaan dari Firestore
    - Filter rentang waktu (dari/sampai tanggal) + preset cepat
    - Menggunakan utilitas store.js: getAllPermintaan, filterPermintaanByRange, fieldLabel
    - Laporan rekap Excel/PDF memakai mesin generik di js/report.js */
@@ -7,7 +7,7 @@
 let rangeFrom = '';
 let rangeTo = '';
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     const from = document.getElementById('rangeFrom');
     const to = document.getElementById('rangeTo');
     if (from) from.addEventListener('change', onRangeChange);
@@ -20,6 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (from) from.value = '';
         if (to) to.value = '';
         render();
+    });
+
+    document.addEventListener('firestore:update', event => {
+        if (event.detail && event.detail.key === STORE_KEYS.PERMINTAAN) render();
     });
 
     document.querySelectorAll('#rangePresets [data-preset]').forEach(btn => {

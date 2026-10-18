@@ -137,7 +137,7 @@
             { time: '17:45', text: 'Sistem Monitoring 7 Relawan Driver diaktifkan.' }
         ];
 
-        /* Data aktif dibaca dari localStorage (hasil CRUD di halaman admin).
+        /* Data aktif dibaca dari Firestore cache (hasil CRUD halaman admin).
            Bila belum pernah disimpan, kembali ke seed di atas. */
-        let ambulances = storeRead(STORE_KEYS.AMBULANCES, AMBULANCE_SEED);
-        let drivers = storeRead(STORE_KEYS.DRIVERS, DRIVER_SEED);
+        var ambulances = storeRead(STORE_KEYS.AMBULANCES, AMBULANCE_SEED);
+        var drivers = storeRead(STORE_KEYS.DRIVERS, DRIVER_SEED);

@@ -1,6 +1,4 @@
-/* store.js — lapisan penyimpanan lokal (localStorage), sesi admin & sesi driver.
-   Urutan muat: store.js -> data.js -> script.js/home.js/admin.js/driver.js/permintaan.js
-   (data.js memanggil storeRead untuk membaca hasil CRUD halaman admin). */
+/* store.js — Firestore untuk data aplikasi dan localStorage untuk sesi peramban. */
 
 const STORE_KEYS = {
     AMBULANCES: 'si_ambulances',
@@ -17,7 +15,37 @@ const ADMIN_ACCOUNTS = [
     { username: 'admin', password: 'admin123', name: 'Admin Utama' }
 ];
 
+function isFirestoreKey(key) {
+    return typeof FS_DOC !== 'undefined' && Object.prototype.hasOwnProperty.call(FS_DOC, key);
+}
+
+function reportStoreError(key, error) {
+    console.error('Firestore gagal untuk key "' + key + '"', error);
+    window.dispatchEvent(new CustomEvent('firestore:error', {
+        detail: { key: key, message: error && error.message ? error.message : String(error) }
+    }));
+}
+
+function syncCachedArrayToPage(key, items) {
+    const target = key === STORE_KEYS.AMBULANCES ? window.ambulances
+        : (key === STORE_KEYS.DRIVERS ? window.drivers : null);
+    if (!Array.isArray(target) || !Array.isArray(items)) return;
+    target.length = 0;
+    items.forEach(item => target.push(item));
+}
+
+function appOnReady(callback) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', callback, { once: true });
+    } else {
+        callback();
+    }
+}
+
 function storeRead(key, fallback) {
+    if (isFirestoreKey(key)) {
+        return Object.prototype.hasOwnProperty.call(__cache, key) ? __cache[key] : fallback;
+    }
     try {
         const raw = window.localStorage.getItem(key);
         if (raw === null || raw === undefined || raw === '') return fallback;
@@ -30,6 +58,46 @@ function storeRead(key, fallback) {
 }
 
 function storeWrite(key, value) {
+    if (isFirestoreKey(key)) {
+        if (!window.db || !Array.isArray(value)) {
+            reportStoreError(key, new Error('Data Firestore harus berupa array dan koneksi harus tersedia.'));
+            return false;
+        }
+        let snapshot;
+        try {
+            snapshot = JSON.parse(JSON.stringify(value));
+        } catch (error) {
+            reportStoreError(key, error);
+            return false;
+        }
+        __cache[key] = snapshot;
+        __pendingWrites[key] = (__pendingWrites[key] || 0) + 1;
+        const previous = __writeQueue[key] || Promise.resolve();
+        const write = previous.then(() =>
+            db.collection('si_state').doc(FS_DOC[key]).set({ items: snapshot })
+        );
+        __writeQueue[key] = write.then(() => {
+            __remoteExists[key] = true;
+            __confirmedCache[key] = JSON.parse(JSON.stringify(snapshot));
+            __pendingWrites[key] -= 1;
+            document.dispatchEvent(new CustomEvent('firestore:update', { detail: { key: key } }));
+        }, error => {
+            __pendingWrites[key] -= 1;
+            if (__pendingWrites[key] === 0) {
+                if (Object.prototype.hasOwnProperty.call(__confirmedCache, key)) {
+                    __cache[key] = JSON.parse(JSON.stringify(__confirmedCache[key]));
+                    syncCachedArrayToPage(key, __cache[key]);
+                } else {
+                    delete __cache[key];
+                }
+                document.dispatchEvent(new CustomEvent('firestore:update', {
+                    detail: { key: key, failed: true }
+                }));
+            }
+            reportStoreError(key, error);
+        });
+        return true;
+    }
     try {
         window.localStorage.setItem(key, JSON.stringify(value));
         return true;
@@ -40,6 +108,28 @@ function storeWrite(key, value) {
 }
 
 function storeRemove(key) {
+    if (isFirestoreKey(key)) {
+        const previousValue = Object.prototype.hasOwnProperty.call(__confirmedCache, key)
+            ? JSON.parse(JSON.stringify(__confirmedCache[key]))
+            : undefined;
+        delete __cache[key];
+        const previous = __writeQueue[key] || Promise.resolve();
+        const write = previous.then(() => db.collection('si_state').doc(FS_DOC[key]).delete());
+        __writeQueue[key] = write.then(() => {
+            __remoteExists[key] = false;
+            delete __confirmedCache[key];
+        }, error => {
+            if (previousValue !== undefined) {
+                __cache[key] = previousValue;
+                syncCachedArrayToPage(key, previousValue);
+            }
+            document.dispatchEvent(new CustomEvent('firestore:update', {
+                detail: { key: key, failed: true }
+            }));
+            reportStoreError(key, error);
+        });
+        return true;
+    }
     try {
         window.localStorage.removeItem(key);
         return true;
@@ -353,7 +443,48 @@ function getPermintaanNotificationsForDriver(driverId) {
 
 /* Semua permintaan yang sudah dikonfirmasi driver tertentu ("Tugas Saya"). */
 function getPermintaanForDriver(driverId) {
-    return getAllPermintaan().filter(p => p && assignedDriversOf(p).indexOf(String(driverId)) !== -1);
+    const driverKey = String(driverId || '').trim();
+    if (!driverKey) return [];
+
+    const driver = driverListSource().find(item => item &&
+        String(item.id || '').trim() === driverKey);
+    const identities = [driverKey];
+    if (driver && driver.name) identities.push(String(driver.name).trim());
+    const normalizedIdentities = identities.map(value => value.toLowerCase()).filter(Boolean);
+    const matchesDriver = value => {
+        const candidate = value && typeof value === 'object'
+            ? (value.driverId || value.id || value.name)
+            : value;
+        return normalizedIdentities.indexOf(String(candidate || '').trim().toLowerCase()) !== -1;
+    };
+    const isConfirmed = value => {
+        if (value && typeof value === 'object') {
+            return value.confirmed !== false && value.cancelled !== true && value.active !== false;
+        }
+        return !!(value && String(value).trim());
+    };
+
+    return getAllPermintaan().filter(p => {
+        if (!p) return false;
+
+        const assignedSource = p.assignedDrivers;
+        const assigned = Array.isArray(assignedSource)
+            ? assignedSource
+            : (typeof assignedSource === 'string'
+                ? [assignedSource]
+                : (assignedSource && typeof assignedSource === 'object'
+                    ? Object.keys(assignedSource).filter(key => assignedSource[key])
+                    : []));
+        const confirms = confirmMapOf(p);
+        const confirmedByDriver = Array.isArray(confirms)
+            ? confirms.some(item => matchesDriver(item) && isConfirmed(item))
+            : Object.keys(confirms).some(key =>
+                matchesDriver(key) && isConfirmed(confirms[key])
+            );
+
+        return assigned.some(matchesDriver) || confirmedByDriver ||
+            matchesDriver(p.assignedDriver) || matchesDriver(p.driverId);
+    });
 }
 
 /* ---------- Sinkron status driver & armada dengan tugas permintaan ----------
@@ -528,8 +659,7 @@ function adminLogout() {
 const DRIVER_DEFAULT_PIN = '1234';
 
 function driverListSource() {
-    // localStorage lebih dulu: patch status (GPS / tugas) selalu ditulis ke store,
-    // sehingga tidak basi oleh snapshot global `drivers` di data.js.
+    // Store cache selalu mencerminkan perubahan Firestore terbaru.
     const stored = storeRead(STORE_KEYS.DRIVERS, null);
     if (Array.isArray(stored)) return stored;
     if (typeof drivers !== 'undefined' && Array.isArray(drivers)) return drivers;
@@ -581,8 +711,7 @@ function driverLogout() {
     storeRemove(STORE_KEYS.DRIVER_SESSION);
 }
 
-/* Perbagian sebagian data satu driver (mis. lat/lng dari GPS) lalu simpan ke
-   localStorage sehingga halaman admin & dashboard ikut membacanya. */
+/* Perbarui sebagian data satu driver (mis. lat/lng GPS) dan simpan ke Firestore. */
 function patchDriverRecord(driverId, patch) {
     const stored = storeRead(STORE_KEYS.DRIVERS, null);
     const list = Array.isArray(stored)
@@ -668,13 +797,12 @@ function filterKasByRange(list, from, to) {
     });
 }
 
-/* ---------- Rekonsiliasi saat halaman dibuka ----------
+/* ---------- Rekonsiliasi setelah data Firestore siap ----------
    Status yang tersimpan (termasuk nilai awal/seed di data.js) selalu diluruskan
    agar sama dengan data permintaan begitu sebuah halaman dibuka — mis. tanpa
    tugas aktif, semua driver & armada tampil Standby, sesuai isi permintaan.
-   Listener didaftarkan paling awal (store.js dimuat pertama), jadi berjalan
-   SEBELUM render awal tiap halaman. */
-document.addEventListener('DOMContentLoaded', function () {
+   Menunggu app:ready agar cache awal tidak tertimpa sebelum Firestore selesai. */
+document.addEventListener('app:ready', function () {
     try {
         syncAllDriverStatuses();
     } catch (e) {

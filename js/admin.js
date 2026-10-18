@@ -1,5 +1,5 @@
 /* admin.js — logika panel admin (admin.html)
-   - CRUD data ambulans & driver (tersimpan di localStorage, dibaca ulang oleh dashboard)
+   - CRUD data ambulans & driver (tersimpan di Firestore, dibaca ulang oleh dashboard)
    - CRUD permintaan dari halaman utama (status: Menunggu / Diproses / Selesai / Batal)
    Semua aksi memakai utilitas di store.js. */
 
@@ -43,7 +43,7 @@ let editingId = null;     // null = mode tambah
 let reqRangeFrom = '';    // filter rentang waktu tab permintaan (YYYY-MM-DD)
 let reqRangeTo = '';
 
-document.addEventListener('DOMContentLoaded', () => {
+appOnReady(() => {
     // Panel admin khusus admin: sesi driver (atau keduanya) harus ditolak.
     const driverOwned = (typeof isDriverLoggedIn === 'function') && isDriverLoggedIn();
     if (!isAdminLoggedIn() || driverOwned) {
@@ -400,7 +400,7 @@ function deleteRequest(id) {
 
 /* ---------- Notifikasi permintaan masuk ----------
    Permintaan baru (status Menunggu) memuncul lonceng + toast di panel admin.
-   Diperbarui otomatis tiap 5 detik (localStorage diisi halaman index.html). */
+   Diperbarui otomatis tiap 5 detik dan setiap ada snapshot Firestore. */
 let lastSeenReqIds = null;   // null = render senyap saat pertama kali
 
 function setupNotifications() {
@@ -424,6 +424,10 @@ function setupNotifications() {
         refreshStatusData();
         renderNotifications();
     }, 5000);
+    document.addEventListener('firestore:update', () => {
+        refreshStatusData();
+        renderNotifications();
+    });
 }
 
 /* Sinkronkan data driver, armada & permintaan dari store: store.js otomatis
@@ -441,8 +445,8 @@ function refreshStatusData() {
     if (snap === lastStatusSnapshot) return;
     lastStatusSnapshot = snap;
 
-    if (Array.isArray(sd) && sd.length && typeof drivers !== 'undefined') drivers = sd;
-    if (Array.isArray(sa) && sa.length && typeof ambulances !== 'undefined') ambulances = sa;
+    if (Array.isArray(sd) && typeof drivers !== 'undefined') drivers = sd;
+    if (Array.isArray(sa) && typeof ambulances !== 'undefined') ambulances = sa;
 
     if (typeof renderAll === 'function') renderAll();
 }
