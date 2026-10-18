@@ -8,6 +8,7 @@ const STORE_KEYS = {
     SESSION: 'si_session',
     DRIVER_SESSION: 'si_driver_session'
 };
+const DEFAULT_AMBULANCE_DESTINATION = 'Markaz Halawatuliman';
 
 /* Kredensial demo (client-side). Hanya untuk prototipe/demo — BUKAN keamanan nyata,
    karena siapa pun bisa membaca kode ini di browser. */
@@ -597,11 +598,13 @@ function syncAmbulanceStatuses() {
         const driversAssigned = crew.map(d => String(d.name || '').trim()).filter(Boolean);
         const status = crew.length ? 'En Route' : 'Standby';
 
-        /* Tujuan rute mengikuti data tujuan pada permintaan yang sedang berjalan;
-           tanpa tugas (atau tujuan kosong di data) -> kosong. */
+        /* Gunakan Tujuan atau TPU dari tugas aktif; setelah tugas berakhir,
+           tampilkan kembali tujuan default markaz. */
         const task = activeTaskForCrewOf(amb.name);
-        const destination = (task && task.detail && task.detail.tujuan)
-            ? String(task.detail.tujuan) : '';
+        const taskDestination = task && task.detail &&
+            (task.detail.tujuan || task.detail.tpu);
+        const destination = String(taskDestination || '').trim() ||
+            DEFAULT_AMBULANCE_DESTINATION;
 
         /* GPS armada mengikuti posisi driver yang bertugas. Koordinat asli (default)
            disimpan di defaultLat/defaultLng sebelum pertama kali ditimpa; saat tidak

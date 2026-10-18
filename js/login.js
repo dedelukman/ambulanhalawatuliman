@@ -32,7 +32,7 @@ const ROLE_META = {
         userPlaceholder: 'drv-01 (atau nama driver)',
         userEmpty: 'ID driver wajib diisi.',
         passLabel: 'PIN',
-        passPlaceholder: '1234',
+        passPlaceholder: '••••••••',
         passEmpty: 'PIN wajib diisi.',
         badCredentials: 'ID driver atau PIN salah.',
         autoComplete: 'username',
