@@ -129,6 +129,7 @@ function loadPageScripts() {
 
 (async function boot() {
   try {
+    if (window.__FIREBASE_READY) await window.__FIREBASE_READY;
     if (window.__FIREBASE_INIT_ERROR) throw new Error(window.__FIREBASE_INIT_ERROR);
     if (!window.db || !window.auth) throw new Error('Firebase SDK belum siap. Periksa konfigurasi dan koneksi.');
     if (!auth.currentUser) await auth.signInAnonymously();
