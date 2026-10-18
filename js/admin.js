@@ -42,6 +42,8 @@ let editingType = null;   // 'ambulans' | 'driver'
 let editingId = null;     // null = mode tambah
 let reqRangeFrom = '';    // filter rentang waktu tab permintaan (YYYY-MM-DD)
 let reqRangeTo = '';
+let lastSeenReqIds = null;   // null = render senyap saat pertama kali
+let lastStatusSnapshot = null;
 
 appOnReady(() => {
     // Panel admin khusus admin: sesi driver (atau keduanya) harus ditolak.
@@ -401,7 +403,6 @@ function deleteRequest(id) {
 /* ---------- Notifikasi permintaan masuk ----------
    Permintaan baru (status Menunggu) memuncul lonceng + toast di panel admin.
    Diperbarui otomatis tiap 5 detik dan setiap ada snapshot Firestore. */
-let lastSeenReqIds = null;   // null = render senyap saat pertama kali
 
 function setupNotifications() {
     const btn = document.getElementById('notifBtn');
@@ -434,7 +435,7 @@ function setupNotifications() {
    mengubah status ('Sedang Bertugas'/'Standby'/En Route, dan 'Diproses' -> 'Selesai'
    setelah semua driver konfirmasi selesai) saat ada aksi dari panel driver,
    sehingga yang tampil di sini selalu sama dengan dashboard & halaman driver. */
-let lastStatusSnapshot = null;
+
 
 function refreshStatusData() {
     if (typeof STORE_KEYS === 'undefined' || typeof storeRead !== 'function') return;

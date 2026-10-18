@@ -59,7 +59,7 @@ function storeRead(key, fallback) {
 
 function storeWrite(key, value) {
     if (isFirestoreKey(key)) {
-        if (!window.db || !Array.isArray(value)) {
+        if (!window.db || !window.firebaseApi || !Array.isArray(value)) {
             reportStoreError(key, new Error('Data Firestore harus berupa array dan koneksi harus tersedia.'));
             return false;
         }
@@ -73,9 +73,8 @@ function storeWrite(key, value) {
         __cache[key] = snapshot;
         __pendingWrites[key] = (__pendingWrites[key] || 0) + 1;
         const previous = __writeQueue[key] || Promise.resolve();
-        const write = previous.then(() =>
-            db.collection('si_state').doc(FS_DOC[key]).set({ items: snapshot })
-        );
+        const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+        const write = previous.then(() => window.firebaseApi.setDoc(ref, { items: snapshot }));
         __writeQueue[key] = write.then(() => {
             __remoteExists[key] = true;
             __confirmedCache[key] = JSON.parse(JSON.stringify(snapshot));
@@ -114,7 +113,8 @@ function storeRemove(key) {
             : undefined;
         delete __cache[key];
         const previous = __writeQueue[key] || Promise.resolve();
-        const write = previous.then(() => db.collection('si_state').doc(FS_DOC[key]).delete());
+        const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+        const write = previous.then(() => window.firebaseApi.deleteDoc(ref));
         __writeQueue[key] = write.then(() => {
             __remoteExists[key] = false;
             delete __confirmedCache[key];

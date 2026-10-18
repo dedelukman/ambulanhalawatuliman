@@ -27,9 +27,9 @@ function loadScript(src) {
 
 async function primeCache() {
   for (const [key, docName] of Object.entries(FS_DOC)) {
-    const ref = db.collection('si_state').doc(docName);
-    const snap = await ref.get();
-    if (snap.exists) {
+    const ref = window.firebaseApi.doc(db, 'si_state', docName);
+    const snap = await window.firebaseApi.getDoc(ref);
+    if (snap.exists()) {
       const data = snap.data();
       if (!Array.isArray(data.items)) {
         throw new Error('Format dokumen Firestore tidak valid: si_state/' + docName);
@@ -52,7 +52,7 @@ async function primeCache() {
         throw new Error('Data localStorage "' + key + '" harus berbentuk array.');
       }
       __cache[key] = legacy;
-      await ref.set({ items: legacy });
+      await window.firebaseApi.setDoc(ref, { items: legacy });
       __confirmedCache[key] = JSON.parse(JSON.stringify(legacy));
       __remoteExists[key] = true;
       window.localStorage.removeItem(key);
@@ -76,9 +76,10 @@ function syncGlobalArrays(key, items) {
 
 function installSnapshots() {
   Object.entries(FS_DOC).forEach(([key, docName]) => {
-    db.collection('si_state').doc(docName).onSnapshot(snap => {
+    const ref = window.firebaseApi.doc(db, 'si_state', docName);
+    window.firebaseApi.onSnapshot(ref, snap => {
       if (__pendingWrites[key]) return;
-      if (!snap.exists) {
+      if (!snap.exists()) {
         __cache[key] = [];
         __confirmedCache[key] = [];
         __remoteExists[key] = false;
@@ -110,7 +111,8 @@ async function seedMissingDocuments() {
     if (__remoteExists[key]) continue;
     const items = Array.isArray(__cache[key]) ? __cache[key] : defaults[key];
     __cache[key] = items;
-    await db.collection('si_state').doc(FS_DOC[key]).set({ items: items });
+    const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+    await window.firebaseApi.setDoc(ref, { items: items });
     __confirmedCache[key] = JSON.parse(JSON.stringify(items));
     __remoteExists[key] = true;
   }
@@ -129,9 +131,12 @@ function loadPageScripts() {
 
 (async function boot() {
   try {
+    await window.__FIREBASE_READY;
     if (window.__FIREBASE_INIT_ERROR) throw new Error(window.__FIREBASE_INIT_ERROR);
-    if (!window.db || !window.auth) throw new Error('Firebase SDK belum siap. Periksa konfigurasi dan koneksi.');
-    if (!auth.currentUser) await auth.signInAnonymously();
+    if (!window.db || !window.auth || !window.firebaseApi) {
+      throw new Error('Firebase SDK belum siap. Periksa konfigurasi dan koneksi.');
+    }
+    if (!window.auth.currentUser) await window.firebaseApi.signInAnonymously(window.auth);
     await primeCache();
     await loadPageScripts();
   } catch (error) {

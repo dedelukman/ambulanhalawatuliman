@@ -8,6 +8,8 @@
         let activeBroadcast = null;
         let broadcastStartTime = null;
         let broadcastTimerInterval = null;
+        let lastDriverSnapshot = null;
+        let lastAmbulanceSnapshot = null;
 
 
 appOnReady(() => {
@@ -47,8 +49,6 @@ appOnReady(() => {
         /* Halaman driver (driver.html) menulis lat/lng terbaru ke Firestore;
            fungsi ini membaca ulang data driver tiap 5 detik dan me-render ulang
            marker + daftar bila ada perubahan. */
-        let lastDriverSnapshot = null;
-
         function refreshDriverLocations() {
             if (typeof STORE_KEYS === 'undefined' || typeof storeRead !== 'function') return;
             const stored = storeRead(STORE_KEYS.DRIVERS, null);
@@ -81,8 +81,6 @@ appOnReady(() => {
         /* Data armada (status En Route/Standy + nama driver bertugas) disinkronkan
            oleh store.js setiap kali data permintaan berubah. Fungsi ini membaca ulang
            Firestore tiap 5 detik dan me-render ulang bila ada perubahan. */
-        let lastAmbulanceSnapshot = null;
-
         function refreshAmbulanceData() {
             if (typeof STORE_KEYS === 'undefined' || typeof storeRead !== 'function') return;
             const stored = storeRead(STORE_KEYS.AMBULANCES, null);
