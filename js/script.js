@@ -40,6 +40,7 @@ appOnReady(() => {
                 if (key === STORE_KEYS.DRIVERS) refreshDriverLocations();
                 if (key === STORE_KEYS.AMBULANCES) refreshAmbulanceData();
                 if (key === STORE_KEYS.PERMINTAAN) renderActiveTasks();
+                if (key === STORE_KEYS.ACTIVITY_LOGS) renderLogs();
             });
 
             // Sembunyikan pintu masuk panel lain sesuai peran login
@@ -488,24 +489,19 @@ appOnReady(() => {
 
         function renderLogs() {
             const container = document.getElementById('activity-log');
-            container.innerHTML = activityLogs.map(log => `
+            if (!container || typeof getActivityLogs !== 'function') return;
+            container.innerHTML = getActivityLogs().map(log => `
                 <div class="flex items-start gap-2 text-slate-300">
-                    <span class="text-slate-500 text-[10px] whitespace-nowrap pt-0.5">${log.time}</span>
-                    <p class="leading-tight text-slate-300 text-[11px]">${log.text}</p>
+                    <span class="text-slate-500 text-[10px] whitespace-nowrap pt-0.5">${escTask(formatDateTime(log.createdAt))}</span>
+                    <p class="leading-tight text-slate-300 text-[11px]">${escTask(log.text)}</p>
                 </div>
             `).join('');
         }
 
-        function addLog(text) {
-            const now = new Date();
-            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-            activityLogs.unshift({ time: timeStr, text: text });
-            if (activityLogs.length > 12) activityLogs.pop();
-            renderLogs();
-        }
-
         function clearLogs() {
-            activityLogs.length = 0;
+            if (typeof storeWrite === 'function' && typeof STORE_KEYS !== 'undefined') {
+                storeWrite(STORE_KEYS.ACTIVITY_LOGS, []);
+            }
             renderLogs();
         }
 
@@ -694,8 +690,6 @@ appOnReady(() => {
                 btnText.textContent = "Jeda";
                 simBtn.classList.add("border-emerald-500/50");
 
-                addLog("Simulasi pergerakan Ambulans 01 & driver aktif dimulai.");
-
                 simulationInterval = setInterval(() => {
                     // Moving Ambulans 01
                     const amb1 = ambulances.find(a => a.id === 'amb-01');
@@ -723,7 +717,6 @@ appOnReady(() => {
                 btnText.textContent = "Simulasi Rute";
                 simBtn.classList.remove("border-emerald-500/50");
                 clearInterval(simulationInterval);
-                addLog("Simulasi rute dihentikan.");
             }
         }
 
@@ -856,9 +849,6 @@ appOnReady(() => {
                 document.getElementById('broadcast-timer').textContent = `${mins}:${secs}`;
             }, 1000);
 
-            addLog(`BROADCAST DARURAT: ${patient.name} (${patient.gender}${patient.age ? ', ' + patient.age + ' th' : ''}) — jemput: ${location} → ${patient.destination} | Pemohon: ${patient.applicant} (${patient.phone})`);
-            if (permintaan) addLog(`Permintaan ${permintaan.id} tercatat di daftar permintaan (status Diproses, armada: ${ambRec ? ambRec.name : '-'}).`);
-
             closeBroadcastModal();
             document.getElementById('broadcastForm').reset();
             updateAllMarkers();
@@ -964,8 +954,6 @@ appOnReady(() => {
             // Update UI Broadcast Panel
             document.getElementById('bc-status-text').textContent = `DITERIMA OLEH: ${driverName} (${responseTime}s)`;
             document.getElementById('bc-status-text').className = 'text-emerald-400 font-bold';
-
-            addLog(`TUGAS DITERIMA: ${driverName} memenangkan broadcast tugas dalam ${responseTime} detik! (First-Come First-Served)`);
 
             updateAllMarkers();
             renderAmbulanceList();

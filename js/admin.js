@@ -387,9 +387,15 @@ function deleteItem(id) {
     if (currentTab === 'ambulans') {
         ambulances = ambulances.filter(x => x.id !== id);
         storeWrite(STORE_KEYS.AMBULANCES, ambulances);
+        if (typeof recordActivityLog === 'function') {
+            recordActivityLog('Data ambulans dihapus: ' + (item.name || id) + '.');
+        }
     } else {
         drivers = drivers.filter(x => x.id !== id);
         storeWrite(STORE_KEYS.DRIVERS, drivers);
+        if (typeof recordActivityLog === 'function') {
+            recordActivityLog('Data driver dihapus: ' + (item.name || id) + '.');
+        }
     }
     renderAll();
 }
@@ -562,6 +568,7 @@ function buildField(field, value) {
 
 function onSubmitForm(e) {
     e.preventDefault();
+    const wasEditing = Boolean(editingId);
     const fields = editingType === 'ambulans' ? AMBULANCE_FIELDS : DRIVER_FIELDS;
     const container = document.getElementById('formFields');
     if (!container) return;
@@ -604,7 +611,11 @@ function onSubmitForm(e) {
             values.id = newId('amb');
             ambulances = ambulances.concat([values]);
         }
-        storeWrite(STORE_KEYS.AMBULANCES, ambulances);
+        if (storeWrite(STORE_KEYS.AMBULANCES, ambulances) &&
+            typeof recordActivityLog === 'function') {
+            recordActivityLog((wasEditing ? 'Data ambulans diperbarui: ' : 'Ambulans ditambahkan: ') +
+                values.name + '.');
+        }
     } else {
         if (editingId) {
             drivers = drivers.map(d => d.id === editingId ? Object.assign({}, d, values, { id: editingId }) : d);
@@ -612,7 +623,11 @@ function onSubmitForm(e) {
             values.id = newId('drv');
             drivers = drivers.concat([values]);
         }
-        storeWrite(STORE_KEYS.DRIVERS, drivers);
+        if (storeWrite(STORE_KEYS.DRIVERS, drivers) &&
+            typeof recordActivityLog === 'function') {
+            recordActivityLog((wasEditing ? 'Data driver diperbarui: ' : 'Driver ditambahkan: ') +
+                values.name + '.');
+        }
     }
 
     closeModal();

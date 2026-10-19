@@ -1,16 +1,17 @@
 // Default Base Coordinates (Cibinong / Bogor Area)
-        const CENTER_LAT = -6.4800;
-        const CENTER_LNG = 106.8250;
+        const CENTER_LAT = -6.466936;
+        const CENTER_LNG = 106.797889;
 
         // Basemap statis: screenshot peta Jabodetabek (file lokal, tampil walau offline).
         // Bounds diambil dari hasil capture: center [-6.475, 106.85], zoom 12, container 3899x2785.
         // Karena bounds ini dipakai untuk menempel gambar, seluruh koordinat marker
         // (lat/lng) otomatis sejajar dengan peta pada screenshot.
         const BASEMAP_SRC = 'assets/peta-jabodetabek.png';
-        const BASEMAP_BOUNDS = [
-            [-6.94994264171917, 106.18080139160158],   // sudut bawah-kiri (selatan / barat)
-            [-5.999898944276991, 107.51941680908203]   // sudut atas-kanan (utara / timur)
-        ];
+        // Bounding box khusus area Bojonggede dan sekitarnya (lebih dekat/besar)
+       const BASEMAP_BOUNDS = [
+    [-6.566936, 106.697889],   // Sudut bawah-kiri (Selatan - Barat)
+    [-6.366936, 106.897889]    // Sudut atas-kanan (Utara - Timur)
+];
 
 // Data Definition: Ambulances (nilai awal / seed)
         const AMBULANCE_SEED = [
@@ -128,13 +129,6 @@
                 phone: '0813-1000-0007',
                 locationName: 'Kediaman (On Call)'
             }
-        ];
-
-        // Audit Logs Initial Array
-        const activityLogs = [
-            { time: '18:10', text: 'Ambulans 01 dalam rute darurat menuju RSUD Cibinong bersama Driver Suwarjiyo & Faisal.' },
-            { time: '18:00', text: '5 Driver (Andi Harsoyo, Bambang S, M. Rizal, Imam A, Lukmanul H) Siaga untuk panggilan broadcast.' },
-            { time: '17:45', text: 'Sistem Monitoring 7 Relawan Driver diaktifkan.' }
         ];
 
         /* Data aktif dibaca dari Firestore cache (hasil CRUD halaman admin).

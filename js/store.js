@@ -4,6 +4,7 @@ const STORE_KEYS = {
     AMBULANCES: 'si_ambulances',
     DRIVERS: 'si_drivers',
     PERMINTAAN: 'si_permintaan',
+    ACTIVITY_LOGS: 'si_activity_logs',
     KAS: 'si_kas',
     SESSION: 'si_session',
     DRIVER_SESSION: 'si_driver_session'
@@ -17,7 +18,12 @@ const ADMIN_ACCOUNTS = [
 ];
 
 function isFirestoreKey(key) {
-    return typeof FS_DOC !== 'undefined' && Object.prototype.hasOwnProperty.call(FS_DOC, key);
+    return key === STORE_KEYS.ACTIVITY_LOGS ||
+        (typeof FS_DOC !== 'undefined' && Object.prototype.hasOwnProperty.call(FS_DOC, key));
+}
+
+function firestoreDocumentName(key) {
+    return key === STORE_KEYS.ACTIVITY_LOGS ? 'activity_logs' : FS_DOC[key];
 }
 
 function reportStoreError(key, error) {
@@ -74,7 +80,7 @@ function storeWrite(key, value) {
         __cache[key] = snapshot;
         __pendingWrites[key] = (__pendingWrites[key] || 0) + 1;
         const previous = __writeQueue[key] || Promise.resolve();
-        const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+        const ref = window.firebaseApi.doc(db, 'si_state', firestoreDocumentName(key));
         const write = previous.then(() => window.firebaseApi.setDoc(ref, { items: snapshot }));
         __writeQueue[key] = write.then(() => {
             __remoteExists[key] = true;
@@ -114,7 +120,7 @@ function storeRemove(key) {
             : undefined;
         delete __cache[key];
         const previous = __writeQueue[key] || Promise.resolve();
-        const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+        const ref = window.firebaseApi.doc(db, 'si_state', firestoreDocumentName(key));
         const write = previous.then(() => window.firebaseApi.deleteDoc(ref));
         __writeQueue[key] = write.then(() => {
             __remoteExists[key] = false;
@@ -152,6 +158,21 @@ function formatDateTime(iso) {
         ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
 }
 
+function getActivityLogs() {
+    const logs = storeRead(STORE_KEYS.ACTIVITY_LOGS, []);
+    return Array.isArray(logs) ? logs : [];
+}
+
+function recordActivityLog(text) {
+    const logs = getActivityLogs();
+    logs.unshift({
+        id: makeId('ACT'),
+        createdAt: new Date().toISOString(),
+        text: String(text)
+    });
+    return storeWrite(STORE_KEYS.ACTIVITY_LOGS, logs.slice(0, 100));
+}
+
 /* ---------- Permintaan (dipakai home.js & admin.js) ---------- */
 
 function getAllPermintaan() {
@@ -170,20 +191,47 @@ function saveAllPermintaan(list) {
 function addPermintaan(item) {
     const list = getAllPermintaan();
     list.unshift(item);
-    return saveAllPermintaan(list) ? item : null;
+    if (!saveAllPermintaan(list)) return null;
+    if (item && isAmbulanPermintaan(item)) {
+        const detail = item.detail && typeof item.detail === 'object' ? item.detail : {};
+        const tujuan = String(detail.tujuan || detail.tpu || '').trim();
+        recordActivityLog('Permintaan ambulans ' + item.id + ' masuk (' +
+            String(item.jenis || item.type || 'Ambulans') + ')' +
+            (item.lokasi ? ', lokasi jemput: ' + item.lokasi : '') +
+            (tujuan ? ', tujuan: ' + tujuan : '') +
+            '. Status: ' + String(item.status || 'Menunggu') + '.');
+    }
+    return item;
 }
 
 function updatePermintaan(id, patch) {
     const list = getAllPermintaan();
     const idx = list.findIndex(p => p && p.id === id);
     if (idx === -1) return null;
+    const previousStatus = list[idx].status;
     list[idx] = Object.assign({}, list[idx], patch);
-    return saveAllPermintaan(list) ? list[idx] : null;
+    if (!saveAllPermintaan(list)) return null;
+    if (patch && patch.status && patch.status !== previousStatus) {
+        const request = list[idx];
+        const detail = request.detail && typeof request.detail === 'object' ? request.detail : {};
+        const tujuan = String(detail.tujuan || detail.tpu || '').trim();
+        recordActivityLog((isAmbulanPermintaan(request) ? 'Permintaan ambulans ' : 'Permintaan ') +
+            id + ' (' + String(request.jenis || request.type || 'layanan') + '): status ' +
+            previousStatus + ' → ' + patch.status +
+            (tujuan ? ', tujuan: ' + tujuan : '') + '.');
+    }
+    return list[idx];
 }
 
 function removePermintaan(id) {
-    const list = getAllPermintaan().filter(p => !p || p.id !== id);
-    return saveAllPermintaan(list);
+    const current = getAllPermintaan();
+    const removed = current.find(p => p && p.id === id);
+    const list = current.filter(p => !p || p.id !== id);
+    if (!saveAllPermintaan(list)) return false;
+    if (removed && isAmbulanPermintaan(removed)) {
+        recordActivityLog('Permintaan ambulans ' + id + ' dihapus.');
+    }
+    return true;
 }
 
 function findPermintaanByCode(code) {
@@ -260,6 +308,9 @@ function cancelPermintaanTask(id, driverId) {
         isPermintaanDoneBy(p, driverId)) return null;
 
     const driverKey = String(driverId);
+    const driver = driverListSource().find(d => d && String(d.id) === driverKey);
+    const driverName = driver ? driver.name : driverKey;
+    const ambulanceName = permintaanAmbulanceOf(p, driverKey);
     const assigned = assignedDriversOf(p).filter(x => x !== driverKey);
     const confirms = Object.assign({}, confirmMapOf(p));
     const done = (p.driverDone && typeof p.driverDone === 'object')
@@ -276,7 +327,10 @@ function cancelPermintaanTask(id, driverId) {
         driverDone: done,
         assignedAmbulances: assignedAmbulances
     });
-    return saveAllPermintaan(list) ? list[idx] : null;
+    if (!saveAllPermintaan(list)) return null;
+    recordActivityLog(driverName + ' membatalkan konfirmasi tugas ' + id +
+        (ambulanceName ? ' (' + ambulanceName + ')' : '') + '.');
+    return list[idx];
 }
 
 function permintaanAmbulanceOf(p, driverId) {
@@ -328,6 +382,7 @@ function confirmPermintaanTask(id, driverId, ambulanceName) {
     if (hasAmbulanceSelection && !driver) return null;
     if (!chosenAmbulance) return null;
 
+    const isNewConfirmation = !isPermintaanConfirmedBy(p, driverKey);
     const confirms = Object.assign({}, confirmMapOf(p));
     confirms[driverKey] = new Date().toISOString();
 
@@ -343,7 +398,12 @@ function confirmPermintaanTask(id, driverId, ambulanceName) {
         assignedAmbulances: assignedAmbulances,
         selectedAmbulance: chosenAmbulance
     });
-    return saveAllPermintaan(list) ? list[idx] : null;
+    if (!saveAllPermintaan(list)) return null;
+    if (isNewConfirmation) {
+        recordActivityLog((driver ? driver.name : driverKey) + ' mengonfirmasi tugas ' + id +
+            ' menggunakan ' + chosenAmbulance + '.');
+    }
+    return list[idx];
 }
 
 /* Driver menandai tugas sudah SELESAI. Hanya driver yang sudah mengonfirmasi tugas
@@ -356,11 +416,14 @@ function confirmPermintaanSelesai(id, driverId) {
     const p = list[idx];
     if (p.status !== 'Diproses') return null;
     if (!isPermintaanConfirmedBy(p, driverId)) return null;
+    if (isPermintaanDoneBy(p, driverId)) return null;
 
     const done = (p.driverDone && typeof p.driverDone === 'object')
         ? Object.assign({}, p.driverDone) : {};
+    const newlyDone = [];
     const now = new Date().toISOString();
     done[String(driverId)] = now;
+    newlyDone.push(String(driverId));
 
     /* Satu armada = satu tugas. Driver LAIN pada armada yang sama yang ikut
        mengonfirmasi tugas ini otomatis ikut ditandai selesai, sehingga status
@@ -377,6 +440,7 @@ function confirmPermintaanSelesai(id, driverId) {
             if (!isPermintaanConfirmedBy(p, d.id)) return;
             if (done[String(d.id)]) return;
             done[String(d.id)] = now;
+            newlyDone.push(String(d.id));
         });
     }
 
@@ -392,7 +456,14 @@ function confirmPermintaanSelesai(id, driverId) {
     if (semuaSelesai) patch.status = 'Selesai';
 
     list[idx] = Object.assign({}, p, patch);
-    return saveAllPermintaan(list) ? list[idx] : null;
+    if (!saveAllPermintaan(list)) return null;
+    const driverNames = newlyDone.map(id => {
+        const driver = driverListSource().find(d => d && String(d.id) === id);
+        return driver ? driver.name : id;
+    });
+    recordActivityLog('Tugas ' + id + ' selesai dikonfirmasi oleh ' + driverNames.join(', ') +
+        (myAmb ? ' untuk ' + myAmb : '') + '.');
+    return list[idx];
 }
 
 function isPermintaanDoneBy(p, driverId) {
@@ -652,12 +723,36 @@ function syncAmbulanceStatuses() {
         return next;
     });
 
-    if (changed) {
-        storeWrite(STORE_KEYS.AMBULANCES, updated);
+    if (changed && storeWrite(STORE_KEYS.AMBULANCES, updated)) {
         if (typeof ambulances !== 'undefined' && Array.isArray(ambulances)) {
             ambulances.length = 0;
             updated.forEach(a => ambulances.push(a));
         }
+        updated.forEach((next, index) => {
+            const previous = ambList[index];
+            if (!next || !previous) return;
+
+            const changes = [];
+            if (next.status !== previous.status) {
+                changes.push('status ' + (previous.status || 'tidak diketahui') + ' → ' + next.status);
+            }
+            const previousDrivers = Array.isArray(previous.driversAssigned)
+                ? previous.driversAssigned : [];
+            const nextDrivers = Array.isArray(next.driversAssigned)
+                ? next.driversAssigned : [];
+            const sameDrivers = previousDrivers.length === nextDrivers.length &&
+                previousDrivers.every((name, driverIndex) => name === nextDrivers[driverIndex]);
+            if (!sameDrivers) {
+                changes.push('kru ' + (nextDrivers.length ? nextDrivers.join(', ') : 'tidak ada'));
+            }
+            if (next.destination !== previous.destination) {
+                changes.push('tujuan ' + (next.destination || 'Markaz Halawatuliman'));
+            }
+            if (changes.length) {
+                recordActivityLog((next.name || next.id || 'Ambulans') + ': ' +
+                    changes.join('; ') + '.');
+            }
+        });
     }
 }
 
@@ -757,8 +852,14 @@ function patchDriverRecord(driverId, patch) {
     const idx = list.findIndex(d => d && d.id === driverId);
     if (idx === -1) return null;
 
+    const previous = list[idx];
     list[idx] = Object.assign({}, list[idx], patch, { id: driverId });
     if (!storeWrite(STORE_KEYS.DRIVERS, list)) return null;
+    if (patch && Object.prototype.hasOwnProperty.call(patch, 'status') &&
+        patch.status !== previous.status) {
+        recordActivityLog((previous.name || driverId) + ' mengubah status menjadi ' +
+            patch.status + '.');
+    }
     return list[idx];
 }
 

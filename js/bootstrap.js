@@ -25,8 +25,12 @@ function loadScript(src) {
   });
 }
 
+function appStateDocuments() {
+  return Object.assign({}, FS_DOC, { [STORE_KEYS.ACTIVITY_LOGS]: 'activity_logs' });
+}
+
 async function primeCache() {
-  for (const [key, docName] of Object.entries(FS_DOC)) {
+  for (const [key, docName] of Object.entries(appStateDocuments())) {
     const ref = window.firebaseApi.doc(db, 'si_state', docName);
     const snap = await window.firebaseApi.getDoc(ref);
     if (snap.exists()) {
@@ -75,7 +79,7 @@ function syncGlobalArrays(key, items) {
 }
 
 function installSnapshots() {
-  Object.entries(FS_DOC).forEach(([key, docName]) => {
+  Object.entries(appStateDocuments()).forEach(([key, docName]) => {
     const ref = window.firebaseApi.doc(db, 'si_state', docName);
     window.firebaseApi.onSnapshot(ref, snap => {
       if (__pendingWrites[key]) return;
@@ -105,13 +109,15 @@ async function seedMissingDocuments() {
     si_ambulances: Array.isArray(window.ambulances) ? window.ambulances : AMBULANCE_SEED,
     si_drivers: Array.isArray(window.drivers) ? window.drivers : DRIVER_SEED,
     si_permintaan: [],
+    si_activity_logs: [],
     si_kas: []
   };
-  for (const key of Object.keys(FS_DOC)) {
+  const documents = appStateDocuments();
+  for (const key of Object.keys(documents)) {
     if (__remoteExists[key]) continue;
     const items = Array.isArray(__cache[key]) ? __cache[key] : defaults[key];
     __cache[key] = items;
-    const ref = window.firebaseApi.doc(db, 'si_state', FS_DOC[key]);
+    const ref = window.firebaseApi.doc(db, 'si_state', documents[key]);
     await window.firebaseApi.setDoc(ref, { items: items });
     __confirmedCache[key] = JSON.parse(JSON.stringify(items));
     __remoteExists[key] = true;
