@@ -64,7 +64,8 @@ appOnReady(() => {
             // Buang marker milik driver/unit yang sudah dihapus dari data
             if (map) {
                 Object.keys(markers).forEach(id => {
-                    if (id === 'incident') return;
+                    // 'incident' & marker permintaan ('req-...') bukan milik driver/armada.
+                    if (id === 'incident' || id.indexOf('req-') === 0) return;
                     const known = drivers.some(d => d && d.id === id) ||
                         ambulances.some(a => a && a.id === id);
                     if (!known) {
@@ -164,6 +165,7 @@ appOnReady(() => {
             // basemapImg.src = BASEMAP_SRC;
 
             updateAllMarkers();
+            renderRequestMarkers();
 
             // Pastikan Leaflet menghitung ulang ukuran container (peta di dalam flex layout),
             // lalu sesuaikan tampilan agar screenshot pas mengisi panel peta.
@@ -206,6 +208,9 @@ appOnReady(() => {
                 } else {
                     bgColor = 'bg-slate-600';
                 }
+            } else if (type === 'request') {
+                iconClass = 'fa-location-dot';
+                bgColor = 'bg-amber-600';
             } else if (type === 'incident') {
                 iconClass = 'fa-triangle-exclamation';
                 bgColor = 'bg-red-600 pulse-broadcast';
@@ -233,7 +238,18 @@ appOnReady(() => {
             const driverStandby = mappedDrivers.filter(driver => driver.status === 'Standby');
             const driverOther = mappedDrivers.filter(driver =>
                 driver.status !== 'Standby' && driver.status !== 'Sedang Bertugas');
+
+            // Lokasi permintaan aktif yang punya koordinat (dari detail.maps).
+            const mappedRequests = (typeof getAllPermintaan === 'function' ? getAllPermintaan() : [])
+                .filter(p => p && isActiveRequestStatus(p.status) && requestCoords(p))
+                .map(p => ({ name: p.id + (p.lokasi ? ' · ' + p.lokasi : '') }));
+
             const entries = [
+                {
+                    color: 'bg-amber-600',
+                    label: 'Lokasi permintaan aktif',
+                    items: mappedRequests
+                },
                 {
                     color: 'bg-red-600',
                     label: 'Ambulans bertugas',
@@ -291,6 +307,97 @@ appOnReady(() => {
             return !!item &&
                 typeof item.lat === 'number' && typeof item.lng === 'number' &&
                 isFinite(item.lat) && isFinite(item.lng);
+        }
+
+        function isActiveRequestStatus(status) {
+            return status === 'Menunggu' || status === 'Diproses';
+        }
+
+        /* Koordinat lokasi permintaan: dari field lat/lng bila ada, atau dari
+           link Google Maps di detail (format ?q=lat,lng, @lat,lng,
+           !3dlat!4dlng, maupun ?ll=lat,lng). */
+        function requestCoords(p) {
+            if (hasValidCoords(p)) return [p.lat, p.lng];
+
+            const detail = (p && p.detail && typeof p.detail === 'object') ? p.detail : {};
+            const maps = String(detail.maps || '').trim();
+            if (!maps) return null;
+
+            const patterns = [
+                /[?&]q=(-?\d+(?:\.\d+)?)\s*,\s*(-?\d+(?:\.\d+)?)/i,
+                /@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/,
+                /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/,
+                /[?&]ll=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i
+            ];
+
+            for (let i = 0; i < patterns.length; i++) {
+                const match = maps.match(patterns[i]);
+                if (!match) continue;
+                const lat = parseFloat(match[1]);
+                const lng = parseFloat(match[2]);
+                if (isFinite(lat) && isFinite(lng) &&
+                    Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+                    return [lat, lng];
+                }
+            }
+            return null;
+        }
+
+        /* Marker lokasi permintaan aktif (Menunggu/Diproses) di peta dashboard.
+           Marker lama diperbarui, marker untuk permintaan yang selesai/dihapus
+           dibuang. */
+        function renderRequestMarkers() {
+            if (!map || typeof getAllPermintaan !== 'function') return;
+
+            const list = getAllPermintaan().filter(p =>
+                p && isActiveRequestStatus(p.status) && requestCoords(p));
+            const alive = {};
+
+            list.forEach(p => {
+                const coords = requestCoords(p);
+                const key = 'req-' + p.id;
+                const mapsUrl = taskMapsUrl(p);
+                const statusCls = p.status === 'Diproses'
+                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                    : 'bg-slate-500/20 text-slate-300 border border-slate-500/30';
+
+                const popupContent = `
+                    <div class="p-2 w-56 text-xs space-y-1.5">
+                        <div class="flex items-center justify-between gap-2 border-b border-slate-700 pb-1.5 mb-2">
+                            <span class="font-bold text-sm text-amber-400 flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot"></i> ${escTask(p.id)}
+                            </span>
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${statusCls}">${escTask(p.status || '-')}</span>
+                        </div>
+                        <p><strong class="text-slate-400">Jenis:</strong> ${escTask(p.jenis || p.type || '-')}</p>
+                        <p><strong class="text-slate-400">Lokasi:</strong> ${escTask(p.lokasi || '-')}</p>
+                        <p><strong class="text-slate-400">Pemohon:</strong> ${escTask(p.nama || '-')}</p>
+                        ${mapsUrl
+                            ? '<a href="' + escTask(mapsUrl) + '" target="_blank" rel="noopener noreferrer"' +
+                                ' class="block text-center bg-amber-600 hover:bg-amber-700 text-white py-1 rounded mt-1">' +
+                                '<i class="fa-solid fa-map-location-dot"></i> Buka Google Maps</a>'
+                            : ''}
+                    </div>
+                `;
+
+                alive[key] = true;
+                if (markers[key]) {
+                    markers[key].setLatLng(coords);
+                    markers[key].setPopupContent(popupContent);
+                } else {
+                    markers[key] = L.marker(coords, { icon: createCustomIcon('request', p) })
+                        .addTo(map)
+                        .bindPopup(popupContent);
+                }
+            });
+
+            Object.keys(markers).forEach(key => {
+                if (key.indexOf('req-') !== 0 || alive[key]) return;
+                map.removeLayer(markers[key]);
+                delete markers[key];
+            });
+
+            updateMapLegend();
         }
 
         function updateAllMarkers() {
@@ -530,11 +637,28 @@ appOnReady(() => {
                 parts.map(escTask).join(' · ') + '</p>';
         }
 
+        /* Link Google Maps untuk tugas berstatus Diproses: pakai link Maps dari
+           detail permintaan bila ada, jika tidak cari alamat lokasinya di Maps. */
+        function taskMapsUrl(p) {
+            const detail = (p && p.detail && typeof p.detail === 'object') ? p.detail : {};
+            const maps = String(detail.maps || '').trim();
+            if (/^https?:\/\//i.test(maps)) return maps;
+
+            const place = String((p && p.lokasi) || '').trim() ||
+                String(detail.alamatRumah || detail.rumahDuka || '').trim();
+            return place
+                ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(place)
+                : '';
+        }
+
         function renderActiveTasks() {
             if (typeof getAllPermintaan !== 'function') return;
             const container = document.getElementById('task-list-container');
             const countEl = document.getElementById('task-count');
             if (!container) return;
+
+            // Marker lokasi permintaan ikut disegarkan tiap daftar tugas dirender.
+            renderRequestMarkers();
 
             const list = getAllPermintaan().filter(p => {
                 if (!p || p.status !== 'Diproses') return false;
@@ -601,6 +725,8 @@ appOnReady(() => {
                         escTask(nm) + ' · ' + escTask(st) + '</span>';
                 }).join('');
 
+                const mapsUrl = taskMapsUrl(p);
+
                 return '<div class="bg-slate-800/60 border border-slate-700/60 rounded-xl p-3">' +
                     '<div class="flex items-center justify-between gap-2 flex-wrap">' +
                         '<span class="mono font-bold text-xs text-slate-100">' + escTask(p.id) + '</span>' +
@@ -608,6 +734,11 @@ appOnReady(() => {
                     '</div>' +
                     '<p class="text-[11px] text-slate-400 mt-1"><i class="fa-solid fa-location-dot mr-1 text-slate-500"></i>' +
                         escTask(p.lokasi || '-') + '</p>' +
+                    (mapsUrl
+                        ? '<a href="' + escTask(mapsUrl) + '" target="_blank" rel="noopener noreferrer"' +
+                            ' class="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 underline mt-1">' +
+                            '<i class="fa-solid fa-map-location-dot"></i>Buka di Google Maps</a>'
+                        : '') +
                     taskDetailSummary(p) +
                     '<p class="text-[10px] text-slate-500 mt-0.5">Pemohon: ' + escTask(p.nama || '-') + '</p>' +
                     '<div class="flex items-center gap-1.5 flex-wrap mt-2 pt-2 border-t border-slate-700/40">' + chips + '</div>' +

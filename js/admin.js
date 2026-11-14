@@ -298,7 +298,7 @@ function renderRequestRow(p) {
     const detail = p.detail && typeof p.detail === 'object' ? p.detail : {};
     const detailLines = Object.keys(detail)
         .filter(k => detail[k] !== undefined && detail[k] !== null && String(detail[k]).trim() !== '')
-        .map(k => '<span class="block"><span class="text-slate-500">' + esc(fieldLabel(k)) + ':</span> ' + esc(detail[k]) + '</span>')
+        .map(k => detailLineHtml(k, detail[k]))
         .join('');
 
     return '<div class="row-card">' +

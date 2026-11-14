@@ -136,10 +136,19 @@ function renderTasks() {
 
 function taskDetailSummary(p) {
     const parts = permintaanTaskDetails(p)
-        .map(item => item.label + ': ' + item.value);
+        .map(item => escapeHtml(item.label + ': ' + item.value));
+
+    // Link Google Maps dari permintaan dibuat bisa diklik (buka tab baru).
+    const detail = (p && p.detail && typeof p.detail === 'object') ? p.detail : {};
+    const maps = String(detail.maps || '').trim();
+    if (/^https?:\/\//i.test(maps)) {
+        parts.push('<a href="' + escapeHtml(maps) + '" target="_blank" rel="noopener noreferrer"' +
+            ' class="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 underline">' +
+            '<i class="fa-solid fa-map-location-dot"></i>Buka Google Maps</a>');
+    }
+
     if (!parts.length) return '';
-    return '<p class="text-[10px] text-slate-400 mt-1">' +
-        parts.map(escapeHtml).join(' · ') + '</p>';
+    return '<p class="text-[10px] text-slate-400 mt-1">' + parts.join(' · ') + '</p>';
 }
 
 /* Kartu notifikasi: tugas broadcast yang belum dikonfirmasi driver ini. */

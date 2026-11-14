@@ -981,6 +981,32 @@ function fieldLabel(key) {
     return map[key] || key;
 }
 
+/* Satu baris detail permintaan untuk row-card (admin & halaman riwayat).
+   Field "maps" yang berisi URL ditampilkan sebagai tautan yang langsung
+   membuka Google Maps di tab baru. */
+function detailLineHtml(key, value) {
+    const text = String(value === null || value === undefined ? '' : value).trim();
+    const label = '<span class="text-slate-500">' + escapeDetailHtml(fieldLabel(key)) + ':</span> ';
+
+    if (key === 'maps' && /^https?:\/\//i.test(text)) {
+        return '<span class="block">' + label +
+            '<a href="' + escapeDetailHtml(text) + '" target="_blank" rel="noopener noreferrer"' +
+            ' class="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 underline">' +
+            '<i class="fa-solid fa-map-location-dot"></i>Buka Google Maps</a></span>';
+    }
+
+    return '<span class="block">' + label + escapeDetailHtml(text) + '</span>';
+}
+
+function escapeDetailHtml(value) {
+    return String(value === null || value === undefined ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 /* ---------- Navigasi per-peran (elemen dengan atribut data-nav) ----------
    - data-nav="admin"  : disembunyikan untuk sesi driver; bila sesi admin,
                          tautan dialihkan langsung ke admin.html.

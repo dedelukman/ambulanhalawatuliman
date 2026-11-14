@@ -169,59 +169,119 @@ function closeSuccessModal() {
     if (modal) modal.classList.remove('is-open');
 }
 
-/* ---------- Alamat otomatis dari lokasi browser ----------
-   Mengisi kolom "Alamat Rumah Duka" (jHome) dan "Alamat Rumah Pasien" (aHome)
-   memakai posisi perangkat (navigator.geolocation), lalu koordinat diubah
-   menjadi alamat lewat reverse geocoding OpenStreetMap (Nominatim).
-   Kolom yang sudah diisi manual tidak ditimpa. */
-const AUTO_ADDRESS_FIELDS = ['jHome', 'aHome'];
-const AUTO_MAPS_FIELDS = ['jMaps', 'aHomeMaps'];
+/* ---------- Alamat & link Maps otomatis dari lokasi browser ----------
+   Kolom alamat rumah (jHome / aHome) dan link Google Maps (jMaps / aHomeMaps)
+   diisi dari posisi perangkat (navigator.geolocation). Koordinat diubah menjadi
+   alamat lewat reverse geocoding OpenStreetMap (Nominatim).
+   - Otomatis saat halaman dibuka: hanya kolom yang masih kosong yang diisi.
+   - Tombol "Aktifkan / Perbarui Lokasi" di dekat link Maps: mengambil posisi
+     terbaru lalu memperbarui alamat + link pada kelompoknya. */
+const LOCATION_GROUPS = {
+    jenazah: { address: 'jHome', maps: 'jMaps' },
+    pasien: { address: 'aHome', maps: 'aHomeMaps' }
+};
 
 function setupAutoAddress() {
+    document.querySelectorAll('[data-loc-btn]').forEach(btn => {
+        btn.addEventListener('click', () => refreshBrowserLocation(
+            btn.getAttribute('data-loc-btn'), btn
+        ));
+    });
+
     if (!('geolocation' in navigator)) return;
     navigator.geolocation.getCurrentPosition(
-        pos => loadAddressFromCoords(pos.coords),
+        pos => fillLocationFromCoords(pos.coords, { force: false }),
         () => { /* izin ditolak / lokasi tidak tersedia: isian manual tetap bisa dipakai */ },
         { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
     );
 }
 
-async function loadAddressFromCoords(coords) {
+/* Tombol: ambil posisi terbaru lalu isi ulang alamat + link Maps kelompok itu. */
+function refreshBrowserLocation(group, btn) {
+    if (!('geolocation' in navigator)) {
+        setLocStatus(group, 'Perangkat ini tidak mendukung lokasi.');
+        return;
+    }
+
+    setLocBusy(btn, true);
+    setLocStatus(group, 'Mengambil lokasi…');
+
+    navigator.geolocation.getCurrentPosition(
+        pos => {
+            setLocBusy(btn, false);
+            fillLocationFromCoords(pos.coords, { force: true, group: group });
+            setLocStatus(group, 'Lokasi diperbarui — periksa alamat dan link.');
+        },
+        err => {
+            setLocBusy(btn, false);
+            setLocStatus(group, geoErrorMessage(err));
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    );
+}
+
+async function fillLocationFromCoords(coords, opts) {
+    const options = opts || {};
+    const fields = locationFields(options.group);
+
     // Link Google Maps hanya butuh koordinat, jadi langsung diisi.
-    fillAutoMaps(coords);
+    fillAutoMaps(fields, coords, options.force);
 
     try {
         const address = await reverseGeocode(coords.latitude, coords.longitude);
-        if (address) fillAutoAddress(address);
+        if (address) fillAutoAddress(fields, address, options.force);
     } catch (err) {
         // Diam saja: pengguna tetap bisa mengisi alamat secara manual.
     }
 }
 
+function locationFields(group) {
+    const keys = (group && LOCATION_GROUPS[group])
+        ? [group]
+        : Object.keys(LOCATION_GROUPS);
+    return keys.map(key => LOCATION_GROUPS[key]);
+}
+
 /* Link Google Maps dari titik lokasi browser, mis.
    https://www.google.com/maps?q=-6.48000,106.82500 */
-function fillAutoMaps(coords) {
+function fillAutoMaps(fields, coords, force) {
     const lat = Number(coords.latitude).toFixed(5);
     const lng = Number(coords.longitude).toFixed(5);
     const url = 'https://www.google.com/maps?q=' + lat + ',' + lng;
-
-    AUTO_MAPS_FIELDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el || String(el.value || '').trim()) return;
-        el.value = url;
-        const hint = document.querySelector('[data-loc-hint="' + id + '"]');
-        if (hint) hint.classList.remove('hidden');
-    });
+    fields.forEach(group => setAutoField(group.maps, url, force));
 }
 
-function fillAutoAddress(address) {
-    AUTO_ADDRESS_FIELDS.forEach(id => {
-        const el = document.getElementById(id);
-        if (!el || String(el.value || '').trim()) return;
-        el.value = address;
-        const hint = document.querySelector('[data-loc-hint="' + id + '"]');
-        if (hint) hint.classList.remove('hidden');
-    });
+function fillAutoAddress(fields, address, force) {
+    fields.forEach(group => setAutoField(group.address, address, force));
+}
+
+/* force = true dipakai tombol (timpa nilai lama); saat otomatis hanya bila kosong. */
+function setAutoField(id, value, force) {
+    const el = document.getElementById(id);
+    if (!el || !value) return;
+    if (!force && String(el.value || '').trim()) return;
+
+    el.value = value;
+    const hint = document.querySelector('[data-loc-hint="' + id + '"]');
+    if (hint) hint.classList.remove('hidden');
+}
+
+function setLocStatus(group, message) {
+    const el = document.querySelector('[data-loc-status="' + group + '"]');
+    if (el) el.textContent = message || '';
+}
+
+function setLocBusy(btn, busy) {
+    if (!btn) return;
+    btn.disabled = busy;
+}
+
+function geoErrorMessage(err) {
+    if (!err) return 'Gagal mengambil lokasi.';
+    if (err.code === 1) return 'Izin lokasi ditolak. Izinkan akses lokasi di browser lalu coba lagi.';
+    if (err.code === 2) return 'Lokasi tidak tersedia. Pastikan layanan lokasi/GPS aktif.';
+    if (err.code === 3) return 'Waktu pengambilan lokasi habis. Coba lagi.';
+    return 'Gagal mengambil lokasi.';
 }
 
 async function reverseGeocode(lat, lng) {

@@ -170,6 +170,12 @@
                     <div>
                         <label class="label" for="jMaps">Link Google Maps rumah duka</label>
                         <input id="jMaps" class="input" type="url" inputmode="url" placeholder="Tempel link Google Maps di sini">
+                        <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                            <button type="button" class="btn btn-ghost btn-sm" data-loc-btn="jenazah">
+                                <i class="fa-solid fa-location-crosshairs"></i> Aktifkan / Perbarui Lokasi
+                            </button>
+                            <span class="text-[10px] text-slate-500" data-loc-status="jenazah" aria-live="polite"></span>
+                        </div>
                         <p class="text-[10px] text-slate-500 mt-1 hidden" data-loc-hint="jMaps">
                             <i class="fa-solid fa-location-crosshairs mr-1"></i>Link terisi otomatis dari titik lokasi browser.
                         </p>
@@ -265,6 +271,12 @@
                     <div>
                         <label class="label" for="aHomeMaps">Link Google Maps rumah pasien</label>
                         <input id="aHomeMaps" class="input" type="url" inputmode="url" placeholder="Tempel link Google Maps di sini">
+                        <div class="flex flex-wrap items-center gap-2 mt-1.5">
+                            <button type="button" class="btn btn-ghost btn-sm" data-loc-btn="pasien">
+                                <i class="fa-solid fa-location-crosshairs"></i> Aktifkan / Perbarui Lokasi
+                            </button>
+                            <span class="text-[10px] text-slate-500" data-loc-status="pasien" aria-live="polite"></span>
+                        </div>
                         <p class="text-[10px] text-slate-500 mt-1 hidden" data-loc-hint="aHomeMaps">
                             <i class="fa-solid fa-location-crosshairs mr-1"></i>Link terisi otomatis dari titik lokasi browser.
                         </p>
