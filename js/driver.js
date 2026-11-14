@@ -7,6 +7,9 @@
 
 let driverSession = null;
 let lastNotifIds = null;
+let taskInteractionActive = false;
+let taskRenderPending = false;
+let taskInteractionTimer = null;
 
 appOnReady(() => {
     // Guard cadangan (bila JS di <head> tidak jalan karena alasan tertentu)
@@ -22,6 +25,7 @@ appOnReady(() => {
     setupLogout();
     setupGeoUI();
     setupTaskActions();
+    setupTaskInteractionGuard();
     renderTasks();
     // Perbarui notifikasi & daftar tugas tiap 5 detik agar broadcast admin langsung muncul
     setInterval(renderTasks, 5000);
@@ -98,6 +102,13 @@ function setupLogout() {
    satu driver) -> tugas muncul di dashboard lacak ambulan -> bila sudah selesai,
    driver menekan Konfirmasi Selesai. */
 function renderTasks() {
+    // Jangan ganti isi daftar saat pengguna sedang memilih di <select>.
+    // Di ponsel, picker bawaan akan langsung tertutup bila elemennya dirender ulang.
+    if (taskInteractionActive) {
+        taskRenderPending = true;
+        return;
+    }
+
     const notifBox = document.getElementById('taskNotifList');
     const notifEmpty = document.getElementById('taskNotifEmpty');
     const notifCount = document.getElementById('taskNotifCount');
@@ -202,6 +213,52 @@ function renderIncomingTask(p) {
                 : 'Pilih ambulan yang akan digunakan sebelum mengonfirmasi tugas.') +
             '</p>' +
     '</div>';
+}
+
+/* Daftar tugas dirender ulang tiap 5 detik dan setiap update Firestore.
+   Di ponsel, memilih ambulan membuka picker bawaan OS; bila daftar dirender
+   ulang saat picker masih terbuka, picker tertutup sebelum pilihan tersimpan.
+   Karena itu render ditahan selama pengguna menyentuh/berinteraksi dengan
+   daftar tugas, lalu dijalankan sekali setelah interaksi selesai. */
+function setupTaskInteractionGuard() {
+    const hold = function () {
+        taskInteractionActive = true;
+        clearTimeout(taskInteractionTimer);
+        // Jaring pengaman: jangan menahan render selamanya.
+        taskInteractionTimer = setTimeout(release, 60000);
+    };
+    const release = function () {
+        clearTimeout(taskInteractionTimer);
+        taskInteractionActive = false;
+        setTimeout(function () {
+            if (taskInteractionActive || !taskRenderPending) return;
+            taskRenderPending = false;
+            renderTasks();
+        }, 350);
+    };
+
+    ['taskNotifList', 'taskList'].forEach(function (id) {
+        const box = document.getElementById(id);
+        if (!box) return;
+
+        box.addEventListener('pointerdown', hold);
+        box.addEventListener('touchstart', hold, { passive: true });
+        box.addEventListener('focusin', hold);
+        box.addEventListener('pointerup', function (ev) {
+            if (ev.target.closest('select')) return; // biarkan picker terselesaikan
+            release();
+        });
+        box.addEventListener('focusout', release);
+        box.addEventListener('change', release);
+    });
+
+    // Menyentuh area lain berarti interaksi dengan daftar sudah selesai
+    // (mis. picker ditutup tanpa memilih) — lanjutkan render yang tertunda.
+    document.addEventListener('pointerdown', function (ev) {
+        if (!taskInteractionActive) return;
+        if (ev.target.closest && ev.target.closest('#taskNotifList, #taskList')) return;
+        release();
+    }, true);
 }
 
 /* Kartu tugas saya: sudah dikonfirmasi — menunggu selesai / sudah konfirmasi selesai. */
