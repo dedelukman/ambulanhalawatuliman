@@ -402,29 +402,39 @@
                 </div>
             </form>
 
-            <!-- Hasil pengiriman -->
-            <section id="successBox" class="card mt-4 hidden" role="status" aria-live="polite">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
-                        <i class="fa-solid fa-check"></i>
+            <!-- Modal pemberitahuan: permintaan berhasil dibuat -->
+            <div class="modal" id="successModal" role="dialog" aria-modal="true" aria-labelledby="successTitle">
+                <div class="modal-panel">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 shrink-0 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-emerald-400 flex items-center justify-center">
+                                <i class="fa-solid fa-check"></i>
+                            </div>
+                            <div>
+                                <p class="font-bold text-sm text-slate-100" id="successTitle">Permintaan berhasil dibuat</p>
+                                <p class="text-xs text-slate-400">Simpan kode di bawah untuk mengecek status.</p>
+                            </div>
+                        </div>
+                        <button type="button" id="successClose" class="text-slate-400 hover:text-white p-1.5 shrink-0" title="Tutup">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
                     </div>
-                    <div>
-                        <p class="font-bold text-sm text-slate-100">Permintaan terkirim</p>
-                        <p class="text-xs text-slate-400">Simpan kode di bawah untuk mengecek status.</p>
+                    <div class="bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
+                        <div class="text-[10px] text-slate-500 uppercase tracking-wider">Kode permintaan</div>
+                        <div id="successCode" class="mono text-2xl font-bold text-emerald-400 mt-0.5">–</div>
+                        <div class="text-[11px] text-slate-400 mt-1">
+                            <span id="successType">–</span> · Status: <span id="successStatus" class="text-amber-400 font-semibold">–</span>
+                        </div>
+                    </div>
+                    <p class="text-[11px] text-slate-500 text-center mt-3">
+                        Petugas akan menghubungi Anda melalui No. HP/WA yang diisi.
+                    </p>
+                    <div class="grid grid-cols-2 gap-2 mt-3">
+                        <a href="dashboard.html" id="successDashboardBtn" class="btn btn-ghost btn-sm btn-block hidden">Lihat Dashboard</a>
+                        <button type="button" id="againBtn" class="btn btn-ghost btn-sm btn-block">Buat Permintaan Lagi</button>
                     </div>
                 </div>
-                <div class="mt-3 bg-slate-950 border border-slate-800 rounded-xl p-3 text-center">
-                    <div class="text-[10px] text-slate-500 uppercase tracking-wider">Kode permintaan</div>
-                    <div id="successCode" class="mono text-xl font-bold text-emerald-400 mt-0.5">–</div>
-                    <div class="text-[11px] text-slate-400 mt-1">
-                        <span id="successType">–</span> · Status: <span id="successStatus" class="text-amber-400 font-semibold">–</span>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2 mt-3">
-                    <a href="dashboard.html" id="successDashboardBtn" class="btn btn-ghost btn-sm btn-block hidden">Lihat Dashboard</a>
-                    <button type="button" id="againBtn" class="btn btn-ghost btn-sm btn-block">Buat Permintaan Lagi</button>
-                </div>
-            </section>
+            </div>
         </section>
 
         <!-- Cek status permintaan -->

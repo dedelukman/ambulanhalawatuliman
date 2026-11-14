@@ -143,17 +143,29 @@ function setupForm() {
     if (!form) return;
     form.addEventListener('submit', onSubmitRequest);
 
+    const modal = document.getElementById('successModal');
+    if (modal) {
+        modal.addEventListener('click', e => { if (e.target === modal) closeSuccessModal(); });
+    }
+    const close = document.getElementById('successClose');
+    if (close) close.addEventListener('click', closeSuccessModal);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSuccessModal(); });
+
     const again = document.getElementById('againBtn');
     if (again) {
         again.addEventListener('click', () => {
-            const box = document.getElementById('successBox');
-            if (box) box.classList.add('hidden');
+            closeSuccessModal();
             form.reset();
             clearAllErrors();
             selectType(selectedType);
             form.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     }
+}
+
+function closeSuccessModal() {
+    const modal = document.getElementById('successModal');
+    if (modal) modal.classList.remove('is-open');
 }
 
 function onSubmitRequest(e) {
@@ -270,13 +282,18 @@ function requestCode() {
 }
 
 function showSuccess(item) {
-    const box = document.getElementById('successBox');
-    if (!box) return;
+    const modal = document.getElementById('successModal');
+    if (!modal) return;
+
+    // Isian dikosongkan supaya form siap dipakai untuk permintaan berikutnya.
+    const form = document.getElementById('requestForm');
+    if (form) form.reset();
+    clearAllErrors();
+
     setText('successCode', item.id);
     setText('successType', item.jenis);
     setText('successStatus', item.status);
-    box.classList.remove('hidden');
-    box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    modal.classList.add('is-open');
 }
 
 /* ---------- Akses dashboard: hanya tampil setelah user login ---------- */
