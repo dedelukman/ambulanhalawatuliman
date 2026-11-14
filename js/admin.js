@@ -1,11 +1,12 @@
 /* admin.js — logika panel admin (admin.html)
-   - CRUD data ambulans & driver (tersimpan di Firestore, dibaca ulang oleh dashboard)
+   - CRUD data ambulans, driver & anggota Tim Janaiz (tersimpan di Firestore)
    - CRUD permintaan dari halaman utama (status: Menunggu / Diproses / Selesai / Batal)
    Semua aksi memakai utilitas di store.js. */
 
 const TAB_META = {
     ambulans: { title: 'Data Ambulans', countLabel: 'unit terdaftar', addLabel: 'Tambah Ambulans' },
     driver: { title: 'Data Driver', countLabel: 'driver terdaftar', addLabel: 'Tambah Driver' },
+    janaiz: { title: 'Tim Janaiz', countLabel: 'anggota terdaftar', addLabel: 'Tambah Anggota' },
     permintaan: { title: 'Permintaan Masuk', countLabel: 'permintaan', addLabel: 'Hapus Semua' }
 };
 
@@ -35,10 +36,19 @@ const DRIVER_FIELDS = [
     { key: 'lng', label: 'Longitude', type: 'number', placeholder: '106.8250' }
 ];
 
+const JANAIZ_FIELDS = [
+    { key: 'name', label: 'Nama anggota', type: 'text', required: true, placeholder: 'Nama lengkap' },
+    { key: 'id', label: 'ID login (huruf kecil, tanpa spasi)', type: 'text', required: true, placeholder: 'janaiz-02' },
+    { key: 'username', label: 'Username login (opsional, default ID)', type: 'text', placeholder: 'janaiz-02' },
+    { key: 'pin', label: 'PIN login (minimal 4 karakter)', type: 'text', required: true, placeholder: '1234' },
+    { key: 'phone', label: 'Nomor HP', type: 'tel', placeholder: '0812-0000-0000' },
+    { key: 'active', label: 'Status akun', type: 'select', options: ['Aktif', 'Nonaktif'] }
+];
+
 const REQUEST_STATUSES = ['Menunggu', 'Diproses', 'Selesai', 'Batal'];
 
 let currentTab = 'ambulans';
-let editingType = null;   // 'ambulans' | 'driver'
+let editingType = null;   // 'ambulans' | 'driver' | 'janaiz'
 let editingId = null;     // null = mode tambah
 let reqRangeFrom = '';    // filter rentang waktu tab permintaan (YYYY-MM-DD)
 let reqRangeTo = '';
@@ -46,9 +56,10 @@ let lastSeenReqIds = null;   // null = render senyap saat pertama kali
 let lastStatusSnapshot = null;
 
 appOnReady(() => {
-    // Panel admin khusus admin: sesi driver (atau keduanya) harus ditolak.
-    const driverOwned = (typeof isDriverLoggedIn === 'function') && isDriverLoggedIn();
-    if (!isAdminLoggedIn() || driverOwned) {
+    // Panel admin khusus admin: sesi driver/janaiz tidak boleh ikut terbuka.
+    const otherRoleOwned = ((typeof isDriverLoggedIn === 'function') && isDriverLoggedIn()) ||
+        ((typeof isJanaizLoggedIn === 'function') && isJanaizLoggedIn());
+    if (!isAdminLoggedIn() || otherRoleOwned) {
         window.location.replace('login.html');
         return;
     }
@@ -181,6 +192,7 @@ function renderSectionHead() {
 function getList() {
     if (currentTab === 'ambulans') return ambulances;
     if (currentTab === 'driver') return drivers;
+    if (currentTab === 'janaiz') return janaizMembersSource();
     return filterPermintaanByRange(getAllPermintaan(), reqRangeFrom, reqRangeTo);
 }
 
@@ -207,6 +219,8 @@ function renderList() {
         container.innerHTML = list.map(renderAmbulanceRow).join('');
     } else if (currentTab === 'driver') {
         container.innerHTML = list.map(renderDriverRow).join('');
+    } else if (currentTab === 'janaiz') {
+        container.innerHTML = list.map(renderJanaizRow).join('');
     } else {
         container.innerHTML = list.map(renderRequestRow).join('');
     }
@@ -255,7 +269,8 @@ function renderDriverRow(d) {
                         '<span class="font-bold text-sm text-slate-100">' + esc(d.name) + '</span>' +
                         '<span class="badge ' + badgeClass + '">' + esc(d.status) + '</span>' +
                     '</div>' +
-                    '<p class="text-[11px] text-slate-400 mt-0.5">' + esc(d.roleTitle) + ' · ' + esc(d.roleCategory) + '</p>' +
+                    '<p class="text-[11px] text-slate-400 mt-0.5">' + esc(d.roleTitle) + ' · ' + esc(d.roleCategory) +
+                        (d.username ? ' · <span class="mono">@' + esc(d.username) + '</span>' : '') + '</p>' +
                 '</div>' +
             '</div>' +
             '<div class="flex gap-1.5 shrink-0">' +
@@ -272,6 +287,39 @@ function renderDriverRow(d) {
     '</div>';
 }
 
+function renderJanaizRow(m) {
+    const active = m.active !== false;
+    const badgeClass = active ? 'badge-green' : 'badge-slate';
+    const tasks = (typeof isJanaizPermintaan === 'function')
+        ? getAllPermintaan().filter(p => p && isJanaizPermintaan(p) &&
+            typeof isJanaizConfirmedBy === 'function' && isJanaizConfirmedBy(p, m.id)).length
+        : 0;
+    return '<div class="row-card">' +
+        '<div class="flex items-start justify-between gap-2">' +
+            '<div class="min-w-0">' +
+                '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="font-bold text-sm text-slate-100">' + esc(m.name || m.id) + '</span>' +
+                    '<span class="badge ' + badgeClass + '">' + (active ? 'Aktif' : 'Nonaktif') + '</span>' +
+                '</div>' +
+                '<p class="text-[11px] text-slate-400 mt-0.5">Username: <span class="mono">' +
+                    esc(m.username || m.id) + '</span></p>' +
+                '<p class="text-[11px] text-slate-400 mt-0.5">ID: <span class="mono">' +
+                    esc(m.id) + '</span> · PIN: <span class="mono">' + esc(m.pin || '-') + '</span></p>' +
+            '</div>' +
+            '<div class="flex gap-1.5 shrink-0">' +
+                '<button type="button" class="btn btn-ghost btn-sm" data-action="edit" data-id="' + esc(m.id) + '">' +
+                    '<i class="fa-solid fa-pen"></i> Ubah</button>' +
+                '<button type="button" class="btn btn-danger btn-sm" data-action="delete" data-id="' + esc(m.id) + '" title="Hapus">' +
+                    '<i class="fa-solid fa-trash"></i></button>' +
+            '</div>' +
+        '</div>' +
+        '<div class="mt-2 pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">' +
+            '<span><i class="fa-solid fa-phone mr-1"></i>' + esc(m.phone || '–') + '</span>' +
+            '<span><i class="fa-solid fa-clipboard-check mr-1"></i>' + tasks + ' tugas dikonfirmasi</span>' +
+        '</div>' +
+    '</div>';
+}
+
 function renderRequestRow(p) {
     const statusOptions = REQUEST_STATUSES.map(s =>
         '<option value="' + s + '"' + (p.status === s ? ' selected' : '') + '>' + s + '</option>').join('');
@@ -281,6 +329,28 @@ function renderRequestRow(p) {
     const assigned = (typeof assignedDriversOf === 'function') ? assignedDriversOf(p) : [];
     const confirms = (typeof confirmMapOf === 'function') ? confirmMapOf(p) : {};
     const doneMap = (p.driverDone && typeof p.driverDone === 'object') ? p.driverDone : {};
+    // Monitor konfirmasi Tim Janaiz untuk permintaan pengurusan jenazah.
+    const janaizRequest = (typeof isJanaizPermintaan === 'function') && isJanaizPermintaan(p);
+    const janaizConfirms = (typeof janaizConfirmMapOf === 'function') ? janaizConfirmMapOf(p) : {};
+    const janaizDone = (typeof janaizDoneMapOf === 'function') ? janaizDoneMapOf(p) : {};
+    const janaizCombined = janaizRequest &&
+        (typeof isAmbulanPermintaan === 'function') && isAmbulanPermintaan(p);
+    const janaizChips = Object.keys(janaizConfirms)
+        .filter(id => janaizConfirms[id])
+        .map(id => {
+            const done = !!janaizDone[id];
+            const cls = done ? 'badge-green' : 'badge-amber';
+            const mark = done
+                ? (janaizCombined && p.status !== 'Selesai' ? ' ✓ jenazah selesai' : ' ✓ selesai')
+                : ' ✓';
+            const name = (typeof janaizMemberName === 'function') ? janaizMemberName(id) : id;
+            const title = done
+                ? (janaizCombined ? 'Pengurusan jenazah selesai — bagian ambulans terpisah'
+                    : 'Tugas jenazah sudah selesai')
+                : 'Tugas jenazah sudah dikonfirmasi';
+            return '<span class="badge ' + cls + '" title="' + title + '">' +
+                esc(name) + mark + '</span>';
+        }).join('');
     const driverChips = assigned.map(drvId => {
         const drv = drivers.find(d => d && d.id === drvId);
         const name = drv ? drv.name : drvId;
@@ -334,6 +404,16 @@ function renderRequestRow(p) {
                         : 'Belum ada driver bertugas.') + '</span>') +
             '</div>' +
         '</div>' +
+        (janaizRequest
+            ? '<div class="mt-2.5 pt-2 border-t border-slate-800">' +
+                '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="text-[11px] text-slate-400 shrink-0"><i class="fa-solid fa-hands-praying mr-1"></i>Tim Janaiz:</span>' +
+                    (janaizChips || '<span class="text-[11px] text-slate-600">' +
+                        (p.status === 'Diproses' ? 'Belum ada konfirmasi — tugas terlihat di panel Tim Janaiz.'
+                            : 'Belum ada konfirmasi tim janaiz.') + '</span>') +
+                '</div>' +
+            '</div>'
+            : '') +
     '</div>';
 }
 
@@ -390,11 +470,21 @@ function deleteItem(id) {
         if (typeof recordActivityLog === 'function') {
             recordActivityLog('Data ambulans dihapus: ' + (item.name || id) + '.');
         }
-    } else {
+    } else if (currentTab === 'driver') {
         drivers = drivers.filter(x => x.id !== id);
         storeWrite(STORE_KEYS.DRIVERS, drivers);
         if (typeof recordActivityLog === 'function') {
             recordActivityLog('Data driver dihapus: ' + (item.name || id) + '.');
+        }
+    } else {
+        const members = janaizMembersSource().filter(x => x && String(x.id) !== String(id));
+        if (!members.length) {
+            toast('Minimal satu anggota Tim Janaiz harus tetap ada.');
+            return;
+        }
+        if (storeWrite(STORE_KEYS.JANAIZ_MEMBERS, members) &&
+            typeof recordActivityLog === 'function') {
+            recordActivityLog('Anggota Tim Janaiz dihapus: ' + (item.name || id) + '.');
         }
     }
     renderAll();
@@ -448,7 +538,8 @@ function refreshStatusData() {
     const sd = storeRead(STORE_KEYS.DRIVERS, null);
     const sa = storeRead(STORE_KEYS.AMBULANCES, null);
     const sp = storeRead(STORE_KEYS.PERMINTAAN, null);
-    const snap = JSON.stringify([sd, sa, sp]);
+    const sj = storeRead(STORE_KEYS.JANAIZ_MEMBERS, null);
+    const snap = JSON.stringify([sd, sa, sp, sj]);
     if (snap === lastStatusSnapshot) return;
     lastStatusSnapshot = snap;
 
@@ -503,24 +594,35 @@ function onAddClicked() {
 }
 
 function openEditModal(id) {
-    editingType = currentTab;             // 'ambulans' | 'driver'
+    editingType = currentTab;             // 'ambulans' | 'driver' | 'janaiz'
     editingId = id || null;
 
-    const meta = TAB_META[editingType];
+    const typeLabel = editingType === 'ambulans' ? 'Ambulans'
+        : (editingType === 'janaiz' ? 'Anggota Tim Janaiz' : 'Driver');
     const title = document.getElementById('modalTitle');
-    if (title) title.textContent = (id ? 'Ubah ' : 'Tambah ') + (editingType === 'ambulans' ? 'Ambulans' : 'Driver');
+    if (title) title.textContent = (id ? 'Ubah ' : 'Tambah ') + typeLabel;
 
-    const fields = editingType === 'ambulans' ? AMBULANCE_FIELDS : DRIVER_FIELDS;
+    const fields = editingType === 'ambulans' ? AMBULANCE_FIELDS
+        : (editingType === 'janaiz' ? JANAIZ_FIELDS : DRIVER_FIELDS);
     const item = id ? getList().find(x => x && x.id === id) : null;
     const values = item ? Object.assign({}, item) : defaultValues(editingType);
+    if (editingType === 'janaiz') {
+        values.active = values.active === false ? 'Nonaktif' : 'Aktif';
+        values.username = values.username || values.id || '';
+    }
 
     const container = document.getElementById('formFields');
-    if (container) container.innerHTML = fields.map(f => buildField(f, values[f.key])).join('');
+    if (container) {
+        container.innerHTML = fields.map(f =>
+            buildField(f, values[f.key], editingType === 'janaiz' && f.key === 'id' && Boolean(id))
+        ).join('');
+    }
 
     const err = document.getElementById('formError');
-    if (err) err.classList.add('hidden');
-
-    if (title && !id) title.textContent = meta.addLabel.replace('Tambah', 'Tambah');
+    if (err) {
+        err.textContent = 'Lengkapi kolom yang wajib diisi.';
+        err.classList.add('hidden');
+    }
     openModal();
 }
 
@@ -533,13 +635,16 @@ function defaultValues(type) {
             driversAssigned: []
         });
     }
+    if (type === 'janaiz') {
+        return { name: '', id: '', username: '', pin: '1234', phone: '', active: 'Aktif' };
+    }
     return Object.assign(base, {
         name: '', roleCategory: 'Tim Bravo', roleTitle: 'Driver Pendukung',
         status: 'Standby', ambulanceAssigned: 'Tidak Ada', phone: '', locationName: 'Kediaman (On Call)'
     });
 }
 
-function buildField(field, value) {
+function buildField(field, value, readonly) {
     const id = 'fld-' + field.key;
     let control;
 
@@ -555,7 +660,8 @@ function buildField(field, value) {
         const val = (value === null || value === undefined) ? '' : value;
         control = '<input id="' + id + '" class="input" type="' + (field.type || 'text') + '" data-key="' + field.key +
             '" placeholder="' + esc(field.placeholder || '') + '" value="' + esc(val) + '"' +
-            (field.type === 'number' ? ' inputmode="decimal"' : '') + '>';
+            (field.type === 'number' ? ' inputmode="decimal"' : '') +
+            (readonly ? ' readonly' : '') + '>';
     }
 
     return '<div>' +
@@ -569,7 +675,8 @@ function buildField(field, value) {
 function onSubmitForm(e) {
     e.preventDefault();
     const wasEditing = Boolean(editingId);
-    const fields = editingType === 'ambulans' ? AMBULANCE_FIELDS : DRIVER_FIELDS;
+    const fields = editingType === 'ambulans' ? AMBULANCE_FIELDS
+        : (editingType === 'janaiz' ? JANAIZ_FIELDS : DRIVER_FIELDS);
     const container = document.getElementById('formFields');
     if (!container) return;
 
@@ -604,6 +711,39 @@ function onSubmitForm(e) {
         return;
     }
 
+    if (editingType === 'janaiz') {
+        values.id = String(values.id || '').trim().toLowerCase().replace(/\s+/g, '-');
+        if (!/^[a-z0-9][a-z0-9._-]{2,}$/.test(values.id)) {
+            showFormError('ID login minimal 3 karakter: huruf kecil, angka, titik, garis bawah, atau strip.');
+            return;
+        }
+        if (String(values.pin || '').length < 4) {
+            showFormError('PIN login minimal 4 karakter.');
+            return;
+        }
+        const others = janaizMembersSource().filter(m => m &&
+            String(m.id || '') !== String(editingId || ''));
+        const duplicate = others.some(m =>
+            String(m.id || '').toLowerCase() === values.id);
+        if (duplicate) {
+            showFormError('ID login sudah dipakai anggota lain.');
+            return;
+        }
+        values.username = normalizeUsername(values.username || values.id);
+        if (!isValidUsername(values.username)) {
+            showFormError('Username minimal 3 karakter: huruf kecil, angka, titik, garis bawah, atau strip.');
+            return;
+        }
+        const usernameConflict = others.some(m => [
+            m.username, m.id, m.name
+        ].some(value => String(value || '').trim().toLowerCase() === values.username));
+        if (usernameConflict) {
+            showFormError('Username sudah dipakai anggota Tim Janaiz lain.');
+            return;
+        }
+        values.active = values.active !== 'Nonaktif';
+    }
+
     if (editingType === 'ambulans') {
         if (editingId) {
             ambulances = ambulances.map(a => a.id === editingId ? Object.assign({}, a, values, { id: editingId }) : a);
@@ -615,6 +755,24 @@ function onSubmitForm(e) {
             typeof recordActivityLog === 'function') {
             recordActivityLog((wasEditing ? 'Data ambulans diperbarui: ' : 'Ambulans ditambahkan: ') +
                 values.name + '.');
+        }
+    } else if (editingType === 'janaiz') {
+        const members = janaizMembersSource().slice();
+        if (editingId) {
+            const idx = members.findIndex(m => m && String(m.id) === String(editingId));
+            if (idx === -1) {
+                toast('Anggota tidak ditemukan.');
+                return;
+            }
+            members[idx] = Object.assign({}, members[idx], values, { id: editingId });
+        } else {
+            members.push(values);
+        }
+        if (storeWrite(STORE_KEYS.JANAIZ_MEMBERS, members) &&
+            typeof recordActivityLog === 'function') {
+            recordActivityLog((wasEditing
+                ? 'Data anggota Tim Janaiz diperbarui: '
+                : 'Anggota Tim Janaiz ditambahkan: ') + values.name + '.');
         }
     } else {
         if (editingId) {
@@ -632,17 +790,21 @@ function onSubmitForm(e) {
 
     closeModal();
     renderAll();
-    toast(editingId ? 'Perubahan tersimpan.' : 'Data ditambahkan.');
+    toast(wasEditing ? 'Perubahan tersimpan.' : 'Data ditambahkan.');
 }
 
 function onResetClicked() {
     if (currentTab === 'permintaan') { onAddClicked(); return; }
-    const label = currentTab === 'ambulans' ? 'data ambulans' : 'data driver';
+    const label = currentTab === 'ambulans' ? 'data ambulans'
+        : (currentTab === 'janaiz' ? 'data Tim Janaiz' : 'data driver');
     if (!confirm('Kembalikan ' + label + ' ke data bawaan? Perubahan Anda akan hilang.')) return;
 
     if (currentTab === 'ambulans') {
         ambulances = AMBULANCE_SEED.map(a => Object.assign({}, a));
         storeWrite(STORE_KEYS.AMBULANCES, ambulances);
+    } else if (currentTab === 'janaiz') {
+        const members = typeof JANAIZ_SEED !== 'undefined' ? JANAIZ_SEED : [];
+        storeWrite(STORE_KEYS.JANAIZ_MEMBERS, members.map(m => Object.assign({}, m)));
     } else {
         drivers = DRIVER_SEED.map(d => Object.assign({}, d));
         storeWrite(STORE_KEYS.DRIVERS, drivers);
@@ -667,6 +829,13 @@ function closeModal() {
 /* ---------- Penolong ---------- */
 function newId(prefix) {
     return prefix + '-' + Date.now().toString(36) + Math.floor(Math.random() * 90 + 10);
+}
+
+function showFormError(message) {
+    const err = document.getElementById('formError');
+    if (!err) return;
+    err.textContent = message;
+    err.classList.remove('hidden');
 }
 
 function setText(id, value) {

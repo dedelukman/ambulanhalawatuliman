@@ -7,7 +7,10 @@ const STORE_KEYS = {
     ACTIVITY_LOGS: 'si_activity_logs',
     KAS: 'si_kas',
     SESSION: 'si_session',
-    DRIVER_SESSION: 'si_driver_session'
+    ADMIN_ACCOUNT: 'si_admin_account',
+    DRIVER_SESSION: 'si_driver_session',
+    JANAIZ_SESSION: 'si_janaiz_session',
+    JANAIZ_MEMBERS: 'si_janaiz_members'
 };
 const DEFAULT_AMBULANCE_DESTINATION = 'Markaz Halawatuliman';
 
@@ -15,6 +18,13 @@ const DEFAULT_AMBULANCE_DESTINATION = 'Markaz Halawatuliman';
    karena siapa pun bisa membaca kode ini di browser. */
 const ADMIN_ACCOUNTS = [
     { username: 'admin', password: 'admin123', name: 'Admin Utama' }
+];
+
+/* Akun Tim Janaiz cadangan (demo client-side). Daftar utama dibaca dari
+   STORE_KEYS.JANAIZ_MEMBERS dan dikelola di panel admin; akun ini dipakai
+   hanya bila data anggota belum tersedia. */
+const JANAIZ_ACCOUNTS = [
+    { id: 'janaiz', username: 'janaiz', name: 'Tim Janaiz', pin: '1234', active: true }
 ];
 
 function isFirestoreKey(key) {
@@ -445,15 +455,16 @@ function confirmPermintaanSelesai(id, driverId) {
     }
 
     /* Bila SEMUA driver yang mengonfirmasi tugas ini sudah menandai selesai
-       (termasuk kru otomatis satu armada), status permintaan dinaikkan otomatis
-       'Diproses' -> 'Selesai'. Masih ada pengkonfirm yang belum selesai ->
-       tetap 'Diproses' sampai tuntas. */
+       (termasuk kru otomatis satu armada), bagian ambulans tuntas. Status
+       permintaan baru menjadi 'Selesai' bila bagian pengurusan jenazah
+       (pada permintaan gabungan) juga sudah tuntas. */
     const confirmed = assignedDriversOf(p).filter(id => confirmMapOf(p)[id]);
     const semuaSelesai = confirmed.length > 0 &&
         confirmed.every(id => done[String(id)] && String(done[String(id)]).trim());
+    const janaizPending = isCombinedJanaizPermintaan(p) && !isJanaizSelesai(p);
 
     const patch = { driverDone: done };
-    if (semuaSelesai) patch.status = 'Selesai';
+    if (semuaSelesai && !janaizPending) patch.status = 'Selesai';
 
     list[idx] = Object.assign({}, p, patch);
     if (!saveAllPermintaan(list)) return null;
@@ -472,6 +483,138 @@ function isPermintaanDoneBy(p, driverId) {
     return !!(v && String(v).trim());
 }
 
+/* ---------- Tim Janaiz: tugas pengurusan jenazah + konfirmasi ----------
+   Tim janaiz menangani permintaan yang memuat PENGURUSAN JENAZAH (bukan
+   pengantaran ambulans saja). Konfirmasi disimpan per anggota:
+   - janaizConfirms : { memberId: 'ISO-timestamp' }
+   - janaizDone     : { memberId: 'ISO-timestamp' }
+   Permintaan pengurusan jenazah murni otomatis menjadi 'Selesai' setelah
+   konfirmasi selesai. Pada permintaan gabungan (ambulan + pengurusan),
+   konfirmasi ini HANYA menutup bagian jenazah; status 'Selesai' baru
+   diberikan setelah driver juga menyelesaikan bagian ambulans.
+   Daftar anggota dibaca dari STORE_KEYS.JANAIZ_MEMBERS (dikelola admin). */
+
+function isJanaizPermintaan(p) {
+    if (!p) return false;
+    const type = String(p.type || '').toLowerCase();
+    if (type === 'jenazah' || type === 'dua') return true;
+    if (type) return false;
+    return jenisPermintaan(p).toLowerCase().indexOf('pengurusan jenazah') !== -1;
+}
+
+function janaizConfirmMapOf(p) {
+    return (p && p.janaizConfirms && typeof p.janaizConfirms === 'object')
+        ? p.janaizConfirms : {};
+}
+
+function janaizDoneMapOf(p) {
+    return (p && p.janaizDone && typeof p.janaizDone === 'object')
+        ? p.janaizDone : {};
+}
+
+function isJanaizConfirmedBy(p, memberId) {
+    const v = janaizConfirmMapOf(p)[memberId];
+    return !!(v && String(v).trim());
+}
+
+function isJanaizDoneBy(p, memberId) {
+    const v = janaizDoneMapOf(p)[memberId];
+    return !!(v && String(v).trim());
+}
+
+/* Bagian jenazah sudah ditandai selesai oleh minimal satu anggota tim. */
+function isJanaizSelesai(p) {
+    const done = janaizDoneMapOf(p);
+    return Object.keys(done).some(id => done[id] && String(done[id]).trim());
+}
+
+/* Permintaan gabungan: ambulans + pengurusan jenazah. */
+function isCombinedJanaizPermintaan(p) {
+    return isJanaizPermintaan(p) && isAmbulanPermintaan(p);
+}
+
+/* Semua driver yang mengonfirmasi sudah menyelesaikan bagian ambulans. */
+function isDriverSideSelesai(p) {
+    const confirmed = assignedDriversOf(p).filter(id => confirmMapOf(p)[id]);
+    return confirmed.length > 0 && confirmed.every(id => isPermintaanDoneBy(p, id));
+}
+
+/* Daftar anggota Tim Janaiz: Firestore (dikelola admin), lalu seed, lalu
+   akun cadangan. Array kosong dari admin tetap dihormati (tidak diisi ulang). */
+function janaizMembersSource() {
+    const stored = storeRead(STORE_KEYS.JANAIZ_MEMBERS, null);
+    if (Array.isArray(stored)) return stored;
+    if (typeof JANAIZ_SEED !== 'undefined' && Array.isArray(JANAIZ_SEED)) return JANAIZ_SEED;
+    return JANAIZ_ACCOUNTS;
+}
+
+function janaizMemberName(memberId) {
+    const key = String(memberId || '').trim().toLowerCase();
+    const member = janaizMembersSource().find(m => m && (
+        String(m.id || '').toLowerCase() === key ||
+        String(m.name || '').toLowerCase() === key));
+    return member ? (member.name || member.id) : String(memberId || 'Tim Janaiz');
+}
+
+/* Notifikasi tugas jenazah: sedang Diproses & belum dikonfirmasi anggota ini. */
+function getJanaizNotificationsFor(memberId) {
+    const key = String(memberId || '');
+    return getActivePermintaan().filter(p => isJanaizPermintaan(p) &&
+        !isJanaizConfirmedBy(p, key));
+}
+
+/* Tugas jenazah yang sudah dikonfirmasi anggota ini (semua status). */
+function getJanaizTasksFor(memberId) {
+    const key = String(memberId || '');
+    if (!key) return [];
+    return getAllPermintaan().filter(p => isJanaizPermintaan(p) &&
+        isJanaizConfirmedBy(p, key));
+}
+
+function confirmJanaizTask(id, memberId) {
+    const list = getAllPermintaan();
+    const idx = list.findIndex(p => p && p.id === id);
+    const key = String(memberId || '').trim();
+    if (idx === -1 || !key) return null;
+
+    const p = list[idx];
+    if (p.status !== 'Diproses' || !isJanaizPermintaan(p)) return null;
+    if (isJanaizConfirmedBy(p, key)) return p;
+
+    const confirms = Object.assign({}, janaizConfirmMapOf(p));
+    confirms[key] = new Date().toISOString();
+    list[idx] = Object.assign({}, p, { janaizConfirms: confirms });
+    if (!saveAllPermintaan(list)) return null;
+    recordActivityLog(janaizMemberName(key) + ' mengonfirmasi tugas jenazah ' + id + '.');
+    return list[idx];
+}
+
+function finishJanaizTask(id, memberId) {
+    const list = getAllPermintaan();
+    const idx = list.findIndex(p => p && p.id === id);
+    const key = String(memberId || '').trim();
+    if (idx === -1 || !key) return null;
+
+    const p = list[idx];
+    if (p.status !== 'Diproses' || !isJanaizConfirmedBy(p, key) ||
+        isJanaizDoneBy(p, key)) return null;
+
+    const done = Object.assign({}, janaizDoneMapOf(p));
+    done[key] = new Date().toISOString();
+
+    const patch = { janaizDone: done };
+    /* Pengurusan jenazah murni langsung Selesai. Untuk permintaan + ambulans,
+       konfirmasi ini hanya menutup bagian jenazah; status tetap Diproses
+       sampai bagian ambulans (driver) juga tuntas. */
+    if (!isCombinedJanaizPermintaan(p) || isDriverSideSelesai(p)) patch.status = 'Selesai';
+    list[idx] = Object.assign({}, p, patch);
+    if (!saveAllPermintaan(list)) return null;
+    recordActivityLog(janaizMemberName(key) + ' menandai pengurusan jenazah ' + id +
+        ' selesai' + (patch.status === 'Selesai'
+            ? ' (status: Selesai)' : ' (bagian ambulans masih berjalan)') + '.');
+    return list[idx];
+}
+
 /* Daftar tugas yang perlu dilihat driver: permintaan berstatus Diproses
    (hasil keputusan admin) — dipakai untuk notifikasi & daftar tugas panel driver. */
 function getActivePermintaan() {
@@ -487,6 +630,8 @@ function jenisPermintaan(p) {
 }
 
 function isAmbulanPermintaan(p) {
+    const type = String((p && p.type) || '').toLowerCase();
+    if (type === 'dua') return true;      // gabungan ambulans + pengurusan jenazah
     const j = jenisPermintaan(p).toLowerCase();
     if (!j) return true;                  // data lama tanpa label jenis
     return j.indexOf('ambul') !== -1;     // 'Pengurusan Jenazah' tidak mengandung 'ambul'
@@ -506,10 +651,11 @@ function permintaanTaskDetails(p) {
 }
 
 /* Notifikasi tugas untuk satu driver: hanya permintaan ambulan berstatus
-   Diproses yang belum dikonfirmasi driver tersebut. */
+   Diproses yang belum dikonfirmasi driver tersebut. Permintaan gabungan yang
+   bagian ambulansnya sudah tuntas tidak ditawarkan lagi ke driver lain. */
 function getPermintaanNotificationsForDriver(driverId) {
     return getActivePermintaan().filter(p => isAmbulanPermintaan(p) &&
-        !isPermintaanConfirmedBy(p, driverId));
+        !isPermintaanConfirmedBy(p, driverId) && !isDriverSideSelesai(p));
 }
 
 /* Semua permintaan yang sudah dikonfirmasi driver tertentu ("Tugas Saya"). */
@@ -758,14 +904,33 @@ function syncAmbulanceStatuses() {
 
 /* ---------- Sesi admin ---------- */
 
+/* Akun admin tersimpan di Firestore agar perubahan username/kata sandi bertahan.
+   ADMIN_ACCOUNTS hanya seed/fallback bila dokumen belum tersedia. */
+function adminAccountsSource() {
+    const stored = storeRead(STORE_KEYS.ADMIN_ACCOUNT, null);
+    if (Array.isArray(stored) && stored.length) return stored;
+    return ADMIN_ACCOUNTS;
+}
+
+function normalizeUsername(value) {
+    return String(value || '').trim().toLowerCase().replace(/\s+/g, '-');
+}
+
+function isValidUsername(value) {
+    return /^[a-z0-9][a-z0-9._-]{2,29}$/.test(String(value || ''));
+}
+
 function adminLogin(username, password) {
-    const u = String(username || '').trim().toLowerCase();
+    const u = normalizeUsername(username);
     const p = String(password || '');
-    const account = ADMIN_ACCOUNTS.find(a => a.username === u && a.password === p);
+    const account = adminAccountsSource().find(a => a &&
+        String(a.username || '').trim().toLowerCase() === u &&
+        String(a.password || '') === p);
     if (!account) return null;
-    // Peran eksklusif: login admin mengakhiri sesi driver (dan sebaliknya),
+    // Peran eksklusif: login admin mengakhiri sesi driver & tim janaiz,
     // sehingga pemegang satu peran tidak bisa membuka panel peran lain.
     storeRemove(STORE_KEYS.DRIVER_SESSION);
+    storeRemove(STORE_KEYS.JANAIZ_SESSION);
     const session = { username: account.username, name: account.name, loginAt: new Date().toISOString() };
     storeWrite(STORE_KEYS.SESSION, session);
     return session;
@@ -782,6 +947,39 @@ function isAdminLoggedIn() {
 
 function adminLogout() {
     storeRemove(STORE_KEYS.SESSION);
+}
+
+/* Admin mengubah username/kata sandinya sendiri. Kata sandi lama wajib benar. */
+function changeAdminCredentials(currentPassword, newUsername, newPassword) {
+    const accounts = adminAccountsSource().slice();
+    const account = accounts[0];
+    if (!account) return { ok: false, error: 'Akun admin tidak ditemukan.' };
+    if (String(currentPassword || '') !== String(account.password || '')) {
+        return { ok: false, error: 'Kata sandi saat ini salah.' };
+    }
+
+    const username = normalizeUsername(newUsername || account.username);
+    if (!isValidUsername(username)) {
+        return { ok: false, error: 'Username minimal 3 karakter: huruf kecil, angka, titik, garis bawah, atau strip.' };
+    }
+
+    const rawPassword = String(newPassword === undefined || newPassword === null ? '' : newPassword);
+    const password = rawPassword.trim() === '' ? String(account.password || '') : rawPassword;
+    if (password.length < 4) {
+        return { ok: false, error: 'Kata sandi minimal 4 karakter.' };
+    }
+
+    accounts[0] = Object.assign({}, account, { username: username, password: password });
+    if (!storeWrite(STORE_KEYS.ADMIN_ACCOUNT, accounts)) {
+        return { ok: false, error: 'Gagal menyimpan akun ke Firestore.' };
+    }
+
+    const session = getAdminSession();
+    if (session) {
+        storeWrite(STORE_KEYS.SESSION, Object.assign({}, session, { username: username }));
+    }
+    recordActivityLog('Admin memperbarui username/kata sandi akun.');
+    return { ok: true, account: accounts[0] };
 }
 
 /* ---------- Sesi driver (login ID + PIN) ---------- */
@@ -812,19 +1010,21 @@ function driverPinOf(drv) {
         : DRIVER_DEFAULT_PIN;
 }
 
-/* Terima ID driver (mis. drv-01) atau nama lengkap, plus PIN. */
+/* Terima username, ID driver (mis. drv-01), atau nama lengkap, plus PIN. */
 function driverLogin(idOrName, pin) {
     const key = String(idOrName || '').trim().toLowerCase();
     const p = String(pin || '').trim();
     if (!key || !p) return null;
 
-    const drv = driverListSource().find(d => d &&
+    const drv = driverListSource().find(d => d && (
+        String(d.username || '').toLowerCase() === key ||
         String(d.id || '').toLowerCase() === key ||
-        (d && String(d.name || '').toLowerCase() === key));
+        String(d.name || '').toLowerCase() === key));
     if (!drv || driverPinOf(drv) !== p) return null;
 
-    // Peran eksklusif: login driver mengakhiri sesi admin.
+    // Peran eksklusif: login driver mengakhiri sesi admin & tim janaiz.
     storeRemove(STORE_KEYS.SESSION);
+    storeRemove(STORE_KEYS.JANAIZ_SESSION);
     const session = { id: drv.id, name: drv.name, loginAt: new Date().toISOString() };
     storeWrite(STORE_KEYS.DRIVER_SESSION, session);
     return session;
@@ -841,6 +1041,106 @@ function isDriverLoggedIn() {
 
 function driverLogout() {
     storeRemove(STORE_KEYS.DRIVER_SESSION);
+}
+
+/* Driver mengubah username/PIN-nya sendiri. ID internal tetap agar penugasan
+   dan riwayat konfirmasi tidak putus. */
+function changeDriverCredentials(driverId, currentPin, newUsername, newPin) {
+    const list = driverListSource().slice();
+    const idx = list.findIndex(d => d && String(d.id) === String(driverId));
+    if (idx === -1) return { ok: false, error: 'Akun driver tidak ditemukan.' };
+    const drv = list[idx];
+    if (driverPinOf(drv) !== String(currentPin || '').trim()) {
+        return { ok: false, error: 'PIN saat ini salah.' };
+    }
+
+    const username = normalizeUsername(newUsername || drv.username || drv.id);
+    if (!isValidUsername(username)) {
+        return { ok: false, error: 'Username minimal 3 karakter: huruf kecil, angka, titik, garis bawah, atau strip.' };
+    }
+    const conflict = list.some((d, i) => i !== idx && d && [
+        d.username, d.id, d.name
+    ].some(value => String(value || '').trim().toLowerCase() === username));
+    if (conflict) return { ok: false, error: 'Username sudah dipakai driver lain.' };
+
+    const rawPin = String(newPin === undefined || newPin === null ? '' : newPin);
+    const pin = rawPin.trim() === '' ? driverPinOf(drv) : rawPin.trim();
+    if (pin.length < 4) return { ok: false, error: 'PIN minimal 4 karakter.' };
+
+    list[idx] = Object.assign({}, drv, { username: username, pin: pin });
+    if (!storeWrite(STORE_KEYS.DRIVERS, list)) {
+        return { ok: false, error: 'Gagal menyimpan akun ke Firestore.' };
+    }
+    syncCachedArrayToPage(STORE_KEYS.DRIVERS, list);
+    recordActivityLog((drv.name || drv.id) + ' memperbarui username/PIN login.');
+    return { ok: true, account: list[idx] };
+}
+
+/* ---------- Sesi Tim Janaiz (ID tim + PIN) ---------- */
+
+function janaizLogin(idOrName, pin) {
+    const key = String(idOrName || '').trim().toLowerCase();
+    const p = String(pin || '').trim();
+    if (!key || !p) return null;
+
+    const member = janaizMembersSource().find(m => m && m.active !== false && (
+        String(m.username || '').toLowerCase() === key ||
+        String(m.id || '').toLowerCase() === key ||
+        String(m.name || '').toLowerCase() === key));
+    if (!member || String(member.pin || '').trim() !== p) return null;
+
+    // Peran eksklusif: login tim janaiz mengakhiri sesi admin & driver.
+    storeRemove(STORE_KEYS.SESSION);
+    storeRemove(STORE_KEYS.DRIVER_SESSION);
+    const session = { id: member.id, name: member.name, loginAt: new Date().toISOString() };
+    storeWrite(STORE_KEYS.JANAIZ_SESSION, session);
+    return session;
+}
+
+function getJanaizSession() {
+    const session = storeRead(STORE_KEYS.JANAIZ_SESSION, null);
+    return (session && session.id) ? session : null;
+}
+
+function isJanaizLoggedIn() {
+    return getJanaizSession() !== null;
+}
+
+function janaizLogout() {
+    storeRemove(STORE_KEYS.JANAIZ_SESSION);
+}
+
+/* Anggota Tim Janaiz mengubah username/PIN-nya sendiri. ID internal tetap agar
+   konfirmasi tugas yang sudah tercatat tidak kehilangan pemiliknya. */
+function changeJanaizCredentials(memberId, currentPin, newUsername, newPin) {
+    const list = janaizMembersSource().slice();
+    const idx = list.findIndex(m => m && String(m.id) === String(memberId));
+    if (idx === -1) return { ok: false, error: 'Akun Tim Janaiz tidak ditemukan.' };
+    const member = list[idx];
+    if (member.active === false) return { ok: false, error: 'Akun sudah nonaktif.' };
+    if (String(member.pin || '').trim() !== String(currentPin || '').trim()) {
+        return { ok: false, error: 'PIN saat ini salah.' };
+    }
+
+    const username = normalizeUsername(newUsername || member.username || member.id);
+    if (!isValidUsername(username)) {
+        return { ok: false, error: 'Username minimal 3 karakter: huruf kecil, angka, titik, garis bawah, atau strip.' };
+    }
+    const conflict = list.some((m, i) => i !== idx && m && [
+        m.username, m.id, m.name
+    ].some(value => String(value || '').trim().toLowerCase() === username));
+    if (conflict) return { ok: false, error: 'Username sudah dipakai anggota Tim Janaiz lain.' };
+
+    const rawPin = String(newPin === undefined || newPin === null ? '' : newPin);
+    const pin = rawPin.trim() === '' ? String(member.pin || '').trim() : rawPin.trim();
+    if (pin.length < 4) return { ok: false, error: 'PIN minimal 4 karakter.' };
+
+    list[idx] = Object.assign({}, member, { username: username, pin: pin });
+    if (!storeWrite(STORE_KEYS.JANAIZ_MEMBERS, list)) {
+        return { ok: false, error: 'Gagal menyimpan akun ke Firestore.' };
+    }
+    recordActivityLog((member.name || member.id) + ' memperbarui username/PIN login.');
+    return { ok: true, account: list[idx] };
 }
 
 /* Perbarui sebagian data satu driver (mis. lat/lng GPS) dan simpan ke Firestore. */
@@ -1008,31 +1308,36 @@ function escapeDetailHtml(value) {
 }
 
 /* ---------- Navigasi per-peran (elemen dengan atribut data-nav) ----------
-   - data-nav="admin"  : disembunyikan untuk sesi driver; bila sesi admin,
+   - data-nav="admin"  : disembunyikan untuk sesi driver/janaiz; bila admin,
                          tautan dialihkan langsung ke admin.html.
-   - data-nav="driver" : disembunyikan untuk sesi admin; bila sesi driver,
+   - data-nav="driver" : disembunyikan untuk sesi admin/janaiz; bila driver,
                          tautan dialihkan langsung ke driver.html.
-   - data-nav="auto"   : tanpa sesi dibiarkan; sesi admin/driver diarahkan ke
-                         panel masing-masing.
+   - data-nav="janaiz" : disembunyikan untuk sesi admin/driver; bila tim janaiz,
+                         tautan dialihkan langsung ke janaiz.html.
+   - data-nav="auto"   : tanpa sesi dibiarkan; sesi yang login diarahkan ke
+                         panel perannya masing-masing.
    Elemen berlabel bisa menambahkan [data-nav-label] untuk mengganti teks. */
 function applyRoleNav() {
     const admin = isAdminLoggedIn();
     const driver = isDriverLoggedIn();
+    const janaiz = isJanaizLoggedIn();
 
     document.querySelectorAll('[data-nav]').forEach(el => {
         const role = el.getAttribute('data-nav');
 
         if (role === 'admin') {
-            // Sesi driver tidak boleh melihat pintu masuk panel admin
-            if (driver) { el.classList.add('hidden'); return; }
+            if (driver || janaiz) { el.classList.add('hidden'); return; }
             if (admin) setNavTarget(el, 'admin.html', 'Panel Admin');
         } else if (role === 'driver') {
-            // Sesi admin tidak boleh melihat pintu masuk panel driver
-            if (admin) { el.classList.add('hidden'); return; }
+            if (admin || janaiz) { el.classList.add('hidden'); return; }
             if (driver) setNavTarget(el, 'driver.html', 'Panel Driver');
+        } else if (role === 'janaiz') {
+            if (admin || driver) { el.classList.add('hidden'); return; }
+            if (janaiz) setNavTarget(el, 'janaiz.html', 'Panel Tim Janaiz');
         } else if (role === 'auto') {
-            if (admin && !driver) setNavTarget(el, 'admin.html', 'Panel Admin');
-            else if (driver && !admin) setNavTarget(el, 'driver.html', 'Panel Driver');
+            if (admin) setNavTarget(el, 'admin.html', 'Panel Admin');
+            else if (driver) setNavTarget(el, 'driver.html', 'Panel Driver');
+            else if (janaiz) setNavTarget(el, 'janaiz.html', 'Panel Tim Janaiz');
         }
     });
 }

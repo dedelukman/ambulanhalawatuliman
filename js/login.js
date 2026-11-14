@@ -1,7 +1,7 @@
-/* login.js — logika halaman login (peran: Admin atau Driver).
+/* login.js — logika halaman login (peran: Admin, Driver, atau Tim Janaiz).
    Demo client-side, lihat store.js untuk kredensial & sesi. */
 
-let loginRole = 'admin'; // 'admin' | 'driver'
+let loginRole = 'admin'; // 'admin' | 'driver' | 'janaiz'
 
 const ROLE_META = {
     admin: {
@@ -17,10 +17,10 @@ const ROLE_META = {
         passEmpty: 'Kata sandi wajib diisi.',
         badCredentials: 'Nama pengguna atau kata sandi salah.',
         autoComplete: 'username',
-        hint: '<span class="text-slate-300 font-semibold">Akun demo:</span> ' +
+        hint: '<span class="text-slate-300 font-semibold">Akun awal:</span> ' +
             'username <span class="mono text-amber-400">admin</span> · ' +
             'sandi <span class="mono text-amber-400">admin123</span><br>' +
-            'Login bersifat demo client-side (tersimpan di browser) — bukan keamanan untuk produksi.',
+            'Admin dapat mengubah username & sandi sendiri di panel admin.',
         fallback: 'admin.html'
     },
     driver: {
@@ -28,29 +28,51 @@ const ROLE_META = {
         subtitle: 'Aktifkan lokasi GPS Anda saat bertugas',
         icon: 'fa-solid fa-id-card-clip text-xl',
         iconClass: 'bg-slate-800 border border-slate-700 p-3 rounded-2xl text-emerald-400',
-        userLabel: 'ID Driver',
-        userPlaceholder: 'drv-01 (atau nama driver)',
-        userEmpty: 'ID driver wajib diisi.',
+        userLabel: 'Username / ID driver',
+        userPlaceholder: 'drv-01 atau username',
+        userEmpty: 'Username/ID driver wajib diisi.',
         passLabel: 'PIN',
         passPlaceholder: '••••••••',
         passEmpty: 'PIN wajib diisi.',
-        badCredentials: 'ID driver atau PIN salah.',
+        badCredentials: 'Username/ID driver atau PIN salah.',
         autoComplete: 'username',
         hint: '<span class="text-slate-300 font-semibold">Akun driver demo:</span> ' +
-            'ID <span class="mono text-amber-400\">drv-01</span> · ' +
-            'PIN <span class="mono text-amber-400">1234</span> (PIN default semua driver, bisa diubah di panel admin).<br>' +
-            'Login driver mengaktifkan update lokasi GPS yang tampil di dashboard.',
+            'ID <span class="mono text-amber-400">drv-01</span> · ' +
+            'PIN <span class="mono text-amber-400">1234</span> (PIN default).<br>' +
+            'Driver dapat mengubah username & PIN sendiri di panel driver.',
         fallback: 'driver.html'
+    },
+    janaiz: {
+        title: 'Login Tim Janaiz',
+        subtitle: 'Panel tugas pengurusan jenazah',
+        icon: 'fa-solid fa-hands-praying text-xl',
+        iconClass: 'bg-slate-800 border border-slate-700 p-3 rounded-2xl text-amber-400',
+        userLabel: 'Username / ID Tim Janaiz',
+        userPlaceholder: 'janaiz atau username',
+        userEmpty: 'Username/ID tim janaiz wajib diisi.',
+        passLabel: 'PIN',
+        passPlaceholder: '••••••••',
+        passEmpty: 'PIN wajib diisi.',
+        badCredentials: 'Username/ID tim janaiz atau PIN salah.',
+        autoComplete: 'username',
+        hint: '<span class="text-slate-300 font-semibold">Akun awal Tim Janaiz:</span> ' +
+            'ID <span class="mono text-amber-400">janaiz</span> · ' +
+            'PIN <span class="mono text-amber-400">1234</span><br>' +
+            'Setiap anggota dapat mengubah username & PIN sendiri; admin mengelola anggota.',
+        fallback: 'janaiz.html'
     }
 };
 
 appOnReady(() => {
     setupRoleTabs();
 
-    // Peran eksklusif: bila kedua sesi sempat terpasang (data lama), reset keduanya.
-    if (isAdminLoggedIn() && isDriverLoggedIn()) {
+    // Peran eksklusif: bila lebih dari satu sesi terpasang (data lama), reset semua.
+    const activeSessions = [isAdminLoggedIn(), isDriverLoggedIn(), isJanaizLoggedIn()]
+        .filter(Boolean).length;
+    if (activeSessions > 1) {
         adminLogout();
         driverLogout();
+        janaizLogout();
     }
 
     // Sudah login? selalu arahkan ke panel peran masing-masing —
@@ -61,6 +83,10 @@ appOnReady(() => {
     }
     if (isDriverLoggedIn()) {
         window.location.replace('driver.html');
+        return;
+    }
+    if (isJanaizLoggedIn()) {
+        window.location.replace('janaiz.html');
         return;
     }
 
@@ -86,7 +112,8 @@ appOnReady(() => {
 function requestedRole() {
     try {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('role') === 'driver') return 'driver';
+        const role = params.get('role');
+        if (ROLE_META[role]) return role;
     } catch (err) { /* URLSearchParams tidak tersedia */ }
     return 'admin';
 }
@@ -158,7 +185,9 @@ function onLogin(e) {
 
     const session = (loginRole === 'driver')
         ? driverLogin(user.value, pass.value)
-        : adminLogin(user.value, pass.value);
+        : (loginRole === 'janaiz'
+            ? janaizLogin(user.value, pass.value)
+            : adminLogin(user.value, pass.value));
 
     if (!session) {
         if (errorBox) errorBox.classList.remove('hidden');
@@ -173,16 +202,21 @@ function onLogin(e) {
 }
 
 /* Halaman yang meminta login (mis. dashboard.html) menyimpan tujuan di si_next.
-   Tujuan hanya diizinkan bila sesuai peran login (admin -> kecuali driver.html,
-   driver -> hanya driver.html). */
+   Tujuan hanya diizinkan bila sesuai peran login:
+   - driver : driver.html / dashboard.html
+   - janaiz : janaiz.html
+   - admin  : selain kedua panel peran lain di atas. */
 function nextDestination(fallback, role) {
     let target = fallback;
     try {
         const saved = window.localStorage.getItem('si_next');
+        const lower = saved ? saved.toLowerCase() : '';
         const allowed = saved && /^[a-z0-9_-]+\.html$/i.test(saved) &&
             (role === 'driver'
-                ? ['driver.html', 'dashboard.html'].indexOf(saved.toLowerCase()) !== -1
-                : saved.toLowerCase() !== 'driver.html');
+                ? ['driver.html', 'dashboard.html'].indexOf(lower) !== -1
+                : (role === 'janaiz'
+                    ? lower === 'janaiz.html'
+                    : (lower !== 'driver.html' && lower !== 'janaiz.html')));
         if (allowed) target = saved;
         window.localStorage.removeItem('si_next');
     } catch (err) { /* localStorage tidak tersedia */ }

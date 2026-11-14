@@ -131,6 +131,18 @@
             }
         ];
 
+        // Data awal anggota Tim Janaiz — dikelola admin di tab Tim Janaiz.
+        const JANAIZ_SEED = [
+            {
+                id: 'janaiz',
+                username: 'janaiz',
+                name: 'Tim Janaiz',
+                pin: '1234',
+                phone: '',
+                active: true
+            }
+        ];
+
         /* Data aktif dibaca dari Firestore cache (hasil CRUD halaman admin).
            Bila belum pernah disimpan, kembali ke seed di atas. */
         var ambulances = storeRead(STORE_KEYS.AMBULANCES, AMBULANCE_SEED);

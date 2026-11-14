@@ -143,6 +143,7 @@ function setupForm() {
     const form = document.getElementById('requestForm');
     if (!form) return;
     form.addEventListener('submit', onSubmitRequest);
+    setupDateShortcuts();
 
     const modal = document.getElementById('successModal');
     if (modal) {
@@ -169,16 +170,48 @@ function closeSuccessModal() {
     if (modal) modal.classList.remove('is-open');
 }
 
+/* ---------- Shortcut Hari ini / Besok (Permohonan Ambulan) ----------
+   Tombol mengisi otomatis dropdown Hari dan input Tanggal permohonan. */
+const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+
+function setupDateShortcuts() {
+    document.querySelectorAll('[data-date-shortcut]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const offset = Number(btn.getAttribute('data-date-shortcut')) || 0;
+            fillRequestDate('aReqDay', 'aReqDate', offset);
+        });
+    });
+}
+
+function fillRequestDate(dayId, dateId, offsetDays) {
+    const date = new Date();
+    date.setDate(date.getDate() + offsetDays);
+
+    const dayEl = document.getElementById(dayId);
+    if (dayEl) dayEl.value = DAY_NAMES[date.getDay()];
+
+    const dateEl = document.getElementById(dateId);
+    if (dateEl) {
+        const pad = n => String(n).padStart(2, '0');
+        // Format lokal YYYY-MM-DD agar tidak bergeser oleh zona waktu UTC.
+        dateEl.value = date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+        setFieldError(dateId, false);
+    }
+}
+
 /* ---------- Alamat & link Maps otomatis dari lokasi browser ----------
-   Kolom alamat rumah (jHome / aHome) dan link Google Maps (jMaps / aHomeMaps)
-   diisi dari posisi perangkat (navigator.geolocation). Koordinat diubah menjadi
-   alamat lewat reverse geocoding OpenStreetMap (Nominatim).
+   Kolom alamat rumah (jHome / aHome), alamat penjemputan (ajPickup / aPickup),
+   dan link Google Maps (jMaps / aHomeMaps) diisi dari posisi perangkat
+   (navigator.geolocation). Koordinat diubah menjadi alamat lewat reverse
+   geocoding OpenStreetMap (Nominatim).
    - Otomatis saat halaman dibuka: hanya kolom yang masih kosong yang diisi.
    - Tombol "Aktifkan / Perbarui Lokasi" di dekat link Maps: mengambil posisi
-     terbaru lalu memperbarui alamat + link pada kelompoknya. */
+     terbaru lalu memperbarui alamat + link pada kelompoknya. Alamat penjemputan
+     hanya diisi bila masih kosong agar titik jemput yang sudah diubah manual
+     tidak tertimpa. */
 const LOCATION_GROUPS = {
-    jenazah: { address: 'jHome', maps: 'jMaps' },
-    pasien: { address: 'aHome', maps: 'aHomeMaps' }
+    jenazah: { address: 'jHome', maps: 'jMaps', pickup: 'ajPickup' },
+    pasien: { address: 'aHome', maps: 'aHomeMaps', pickup: 'aPickup' }
 };
 
 function setupAutoAddress() {
@@ -252,7 +285,12 @@ function fillAutoMaps(fields, coords, force) {
 }
 
 function fillAutoAddress(fields, address, force) {
-    fields.forEach(group => setAutoField(group.address, address, force));
+    fields.forEach(group => {
+        setAutoField(group.address, address, force);
+        // Titik jemput mengikuti lokasi saat ini, tetapi jangan menimpa isian
+        // manual (mis. jemput di rumah sakit yang berbeda).
+        if (group.pickup) setAutoField(group.pickup, address, false);
+    });
 }
 
 /* force = true dipakai tombol (timpa nilai lama); saat otomatis hanya bila kosong. */

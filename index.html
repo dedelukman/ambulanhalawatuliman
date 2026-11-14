@@ -299,12 +299,24 @@
                                 <input id="aReqTime" class="input" type="time">
                             </div>
                         </div>
+                        <div class="flex flex-wrap items-center gap-2 mt-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1">
+                                <i class="fa-solid fa-calendar-plus"></i> Besok
+                            </button>
+                        </div>
                     </fieldset>
                     </div>
                     <div>
                         <label class="label" for="aPickup">Alamat Penjemputan Pasien</label>
                         <textarea id="aPickup" class="input" rows="2" placeholder="Titik jemput pasien (bisa berbeda dari rumah)"></textarea>
                         <p class="field-error" data-error-for="aPickup">Alamat penjemputan wajib diisi.</p>
+                        <p class="text-[10px] text-slate-500 mt-1 hidden" data-loc-hint="aPickup">
+                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Alamat terisi otomatis dari lokasi browser — periksa dan lengkapi nomor rumah.
+                        </p>
                     </div>
                     <div>
                         <label class="label" for="aDest">Tujuan Pengantaran Pasien ke</label>
@@ -340,6 +352,9 @@
                         <label class="label" for="ajPickup">Alamat Penjemputan Jenazah</label>
                         <textarea id="ajPickup" class="input" rows="2" placeholder="Alamat lengkap penjemputan jenazah"></textarea>
                         <p class="field-error" data-error-for="ajPickup">Alamat penjemputan jenazah wajib diisi.</p>
+                        <p class="text-[10px] text-slate-500 mt-1 hidden" data-loc-hint="ajPickup">
+                            <i class="fa-solid fa-location-crosshairs mr-1"></i>Alamat terisi otomatis dari lokasi browser — periksa dan lengkapi nomor rumah.
+                        </p>
                     </div>
                     <div>
                         <label class="label" for="ajDest">Tujuan Pengantaran Jenazah</label>

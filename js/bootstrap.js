@@ -108,6 +108,8 @@ async function seedMissingDocuments() {
   const defaults = {
     si_ambulances: Array.isArray(window.ambulances) ? window.ambulances : AMBULANCE_SEED,
     si_drivers: Array.isArray(window.drivers) ? window.drivers : DRIVER_SEED,
+    si_admin_account: ADMIN_ACCOUNTS,
+    si_janaiz_members: typeof JANAIZ_SEED !== 'undefined' ? JANAIZ_SEED : [],
     si_permintaan: [],
     si_activity_logs: [],
     si_kas: []

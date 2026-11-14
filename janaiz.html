@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Tim Janaiz — SI-Ambulans Relawan</title>
+
+      <!-- di setiap HTML, paling atas -->
+    <script src="js/firebase-init.js"></script>
+    <script src="js/firebase-client.js"></script>
+    <script src="js/store.js"></script>
+    <script>
+        window.APP_PRE_DATA_SCRIPTS = [];
+        window.APP_POST_DATA_SCRIPTS = ['js/janaiz.js', 'js/account.js'];
+    </script>
+    <script src="js/bootstrap.js"></script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Guard: halaman ini khusus Tim Janaiz yang sudah login -->
+    <script>
+        var __otherRoleOwned = (typeof isAdminLoggedIn === 'function' && isAdminLoggedIn()) ||
+            (typeof isDriverLoggedIn === 'function' && isDriverLoggedIn());
+        if (typeof isJanaizLoggedIn !== 'function' || !isJanaizLoggedIn() || __otherRoleOwned) {
+            try { window.localStorage.setItem('si_next', 'janaiz.html'); } catch (e) {}
+            window.location.replace('login.html?role=janaiz');
+        }
+    </script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
+
+        <!-- Header -->
+        <header class="flex items-start justify-between gap-3 pt-6 pb-5">
+            <div class="flex items-center gap-3">
+                <div class="bg-amber-600 p-3 rounded-2xl text-white shadow-lg shadow-amber-600/30">
+                    <i class="fa-solid fa-hands-praying text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base leading-tight text-slate-100">PANEL TIM JANAIZ</h1>
+                    <p class="text-xs text-slate-400">Markaz Halawatul Iman</p>
+                </div>
+            </div>
+            <button type="button" id="janaizLogoutBtn" class="btn btn-danger btn-sm shrink-0">
+                <i class="fa-solid fa-right-from-bracket"></i> Keluar
+            </button>
+        </header>
+
+        <!-- Info tim -->
+        <section class="card">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 shrink-0 rounded-full bg-amber-600/20 border border-amber-500/40 text-amber-300 flex items-center justify-center text-lg font-bold" id="jnzInitial">–</div>
+                <div class="min-w-0">
+                    <p class="font-bold text-base text-slate-100 leading-tight truncate" id="jnzName">–</p>
+                    <p class="text-xs text-slate-400" id="jnzMeta">–</p>
+                </div>
+                <span class="badge badge-amber ml-auto shrink-0"><i class="fa-solid fa-hands-praying mr-1"></i>Tim Janaiz</span>
+            </div>
+
+            <hr class="divider">
+
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+                <i class="fa-solid fa-circle-info mr-1 text-slate-500"></i>
+                Panel ini khusus tugas <strong class="text-slate-300">pengurusan jenazah</strong>.
+                Konfirmasi tugas agar admin tahu tim sudah berangkat, lalu tandai selesai
+                setelah seluruh proses pengurusan tuntas. Untuk permintaan yang juga memakai
+                ambulans, tombol <strong class="text-slate-300">Selesai Pengurusan Jenazah</strong>
+                hanya menutup bagian jenazah; bagian ambulans tetap diproses driver.
+            </p>
+        </section>
+
+        <!-- Notifikasi tugas dari admin -->
+        <section class="card mt-4 border-amber-500/30">
+            <h2 class="text-sm font-bold text-slate-100">
+                <i class="fa-solid fa-bell text-amber-400 mr-1.5"></i>Notifikasi Tugas
+                <span id="janaizNotifCount" class="badge badge-red ml-1.5 hidden">0</span>
+            </h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">Permintaan pengurusan jenazah yang sedang diproses admin. Tekan <strong class="text-slate-300">Konfirmasi Tugas</strong> bila tim siap berangkat.</p>
+
+            <div id="janaizNotifList" class="mt-3 space-y-2.5"></div>
+
+            <p id="janaizNotifEmpty" class="text-[11px] text-slate-500 text-center py-4">
+                <i class="fa-solid fa-bell-slash mr-1"></i> Tidak ada notifikasi tugas saat ini.
+            </p>
+        </section>
+
+        <!-- Tugas saya (sudah dikonfirmasi) -->
+        <section class="card mt-4">
+            <h2 class="text-sm font-bold text-slate-100"><i class="fa-solid fa-list-check text-emerald-400 mr-1.5"></i>Tugas Saya</h2>
+            <p class="text-[11px] text-slate-400 mt-0.5">Tugas jenazah yang sudah dikonfirmasi tim. Tekan <strong class="text-slate-300">Konfirmasi Selesai</strong> setelah pengurusan benar-benar selesai.</p>
+
+            <div id="janaizTaskList" class="mt-3 space-y-2.5"></div>
+
+            <p id="janaizTaskEmpty" class="text-[11px] text-slate-500 text-center py-4">
+                <i class="fa-solid fa-inbox mr-1"></i> Belum ada tugas yang dikonfirmasi.
+            </p>
+        </section>
+
+        <!-- Navigasi -->
+        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
+            <a href="permintaan.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
+                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-clipboard-list"></i>
+                </span>
+                <span>
+                    <span class="block text-sm font-semibold text-slate-100">Riwayat Permintaan</span>
+                    <span class="block text-[11px] text-slate-400">Daftar & filter rentang waktu</span>
+                </span>
+            </a>
+            <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
+                <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
+                    <i class="fa-solid fa-house"></i>
+                </span>
+                <span>
+                    <span class="block text-sm font-semibold text-slate-100">Halaman Utama</span>
+                    <span class="block text-[11px] text-slate-400">Formulir permohonan warga</span>
+                </span>
+            </a>
+        </nav>
+
+        <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
+            SI-Ambulans Relawan · Markaz Halawatul Iman<br>
+            Konfirmasi tugas tersimpan di Firestore dan terlihat di panel admin.
+        </footer>
+    </div>
+
+</body>
+</html>
