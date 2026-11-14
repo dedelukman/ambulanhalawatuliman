@@ -24,6 +24,7 @@ appOnReady(() => {
     renderStats();
     setupChoices();
     setupForm();
+    setupAutoAddress();
     setupCheckStatus();
     setupAuthVisibility();
     if (typeof applyRoleNav === 'function') applyRoleNav();
@@ -166,6 +167,90 @@ function setupForm() {
 function closeSuccessModal() {
     const modal = document.getElementById('successModal');
     if (modal) modal.classList.remove('is-open');
+}
+
+/* ---------- Alamat otomatis dari lokasi browser ----------
+   Mengisi kolom "Alamat Rumah Duka" (jHome) dan "Alamat Rumah Pasien" (aHome)
+   memakai posisi perangkat (navigator.geolocation), lalu koordinat diubah
+   menjadi alamat lewat reverse geocoding OpenStreetMap (Nominatim).
+   Kolom yang sudah diisi manual tidak ditimpa. */
+const AUTO_ADDRESS_FIELDS = ['jHome', 'aHome'];
+const AUTO_MAPS_FIELDS = ['jMaps', 'aHomeMaps'];
+
+function setupAutoAddress() {
+    if (!('geolocation' in navigator)) return;
+    navigator.geolocation.getCurrentPosition(
+        pos => loadAddressFromCoords(pos.coords),
+        () => { /* izin ditolak / lokasi tidak tersedia: isian manual tetap bisa dipakai */ },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 300000 }
+    );
+}
+
+async function loadAddressFromCoords(coords) {
+    // Link Google Maps hanya butuh koordinat, jadi langsung diisi.
+    fillAutoMaps(coords);
+
+    try {
+        const address = await reverseGeocode(coords.latitude, coords.longitude);
+        if (address) fillAutoAddress(address);
+    } catch (err) {
+        // Diam saja: pengguna tetap bisa mengisi alamat secara manual.
+    }
+}
+
+/* Link Google Maps dari titik lokasi browser, mis.
+   https://www.google.com/maps?q=-6.48000,106.82500 */
+function fillAutoMaps(coords) {
+    const lat = Number(coords.latitude).toFixed(5);
+    const lng = Number(coords.longitude).toFixed(5);
+    const url = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+
+    AUTO_MAPS_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || String(el.value || '').trim()) return;
+        el.value = url;
+        const hint = document.querySelector('[data-loc-hint="' + id + '"]');
+        if (hint) hint.classList.remove('hidden');
+    });
+}
+
+function fillAutoAddress(address) {
+    AUTO_ADDRESS_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el || String(el.value || '').trim()) return;
+        el.value = address;
+        const hint = document.querySelector('[data-loc-hint="' + id + '"]');
+        if (hint) hint.classList.remove('hidden');
+    });
+}
+
+async function reverseGeocode(lat, lng) {
+    const url = 'https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&addressdetails=1&accept-language=id' +
+        '&lat=' + encodeURIComponent(lat) + '&lon=' + encodeURIComponent(lng);
+    const res = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return formatReverseAddress(data);
+}
+
+/* Susun alamat ringkas dari komponen Nominatim, mis.
+   "Jl. Raya Jakarta, Cibinong, Bogor, Jawa Barat, 16911". */
+function formatReverseAddress(data) {
+    const a = (data && data.address) || {};
+    const road = [a.road || a.pedestrian || a.footway || a.path, a.house_number]
+        .filter(Boolean).join(' No. ');
+    const parts = [
+        road,
+        a.neighbourhood || a.quarter,
+        a.suburb || a.village || a.hamlet,
+        a.city_district || a.district,
+        a.city || a.town || a.municipality || a.county,
+        a.state,
+        a.postcode
+    ].map(s => String(s || '').trim()).filter(Boolean);
+
+    const unique = parts.filter((part, i) => parts.indexOf(part) === i);
+    return unique.join(', ') || String((data && data.display_name) || '').trim();
 }
 
 function onSubmitRequest(e) {
