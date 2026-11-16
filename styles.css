@@ -241,6 +241,20 @@ textarea.input { min-height: 4.5rem; resize: vertical; }
 .tab:hover { color: #e2e8f0; }
 .tab.is-active { background: #1e293b; color: #f8fafc; }
 
+/* Panel notifikasi admin: di HP selebar layar agar tidak terpotong ke kiri */
+@media (max-width: 639px) {
+    #notifPanel {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        top: 4.5rem;
+        width: auto;
+        max-width: none;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+}
+
 /* Badge status */
 .badge {
     display: inline-flex;

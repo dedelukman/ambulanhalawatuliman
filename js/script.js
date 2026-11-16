@@ -135,10 +135,41 @@ appOnReady(() => {
             }
 
             map = L.map('map').setView([CENTER_LAT, CENTER_LNG], 12);
-            // Basemap lokal: ubin peta tersimpan di assets/tiles, tanpa permintaan
-            // ke server tile online. Zoom 11-12 tersedia; di atas itu ubin
-            // diperbesar (maxNativeZoom) agar halaman tidak kosong.
-            L.tileLayer(BASEMAP_TILES, {
+            // Ubin peta diambil dari hosting aplikasi (agar tidak ikut diblokir
+            // seperti tile OSM). Bila satu ubin gagal dimuat (404/jaringan
+            // diblokir/offline), ubin itu otomatis memakai salinan lokal di
+            // BASEMAP_TILES sehingga peta tidak pernah kosong.
+            // Setelah beberapa ubin hosting gagal (mis. belum diunggah/offline),
+            // ubin berikutnya langsung dipakai lokal agar tidak menunggu tiap ubin.
+            let hostedTileFailures = 0;
+            const HOSTED_FAILURE_LIMIT = 3;
+            const BasemapTiles = L.TileLayer.extend({
+                createTile: function (coords, done) {
+                    const tile = document.createElement('img');
+                    tile.alt = '';
+                    tile.setAttribute('role', 'presentation');
+                    const zoomForUrl = this._getZoomForUrl ? this._getZoomForUrl() : coords.z;
+                    const localUrl = L.Util.template(BASEMAP_TILES, {
+                        z: zoomForUrl, x: coords.x, y: coords.y
+                    });
+                    let fallbackUsed = false;
+                    tile.onload = function () { done(null, tile); };
+                    tile.onerror = function () {
+                        if (!fallbackUsed && tile.src !== localUrl) {
+                            fallbackUsed = true;
+                            hostedTileFailures++;
+                            tile.src = localUrl;
+                            return;
+                        }
+                        done(new Error('ubin peta gagal dimuat'), tile);
+                    };
+                    tile.src = hostedTileFailures >= HOSTED_FAILURE_LIMIT
+                        ? localUrl
+                        : this.getTileUrl(coords);
+                    return tile;
+                }
+            });
+            new BasemapTiles(BASEMAP_TILES_HOSTED, {
                 minZoom: 10,
                 maxZoom: 16,
                 minNativeZoom: 11,
