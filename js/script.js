@@ -10,6 +10,8 @@
         let broadcastTimerInterval = null;
         let lastDriverSnapshot = null;
         let lastAmbulanceSnapshot = null;
+        let lastActiveTasksSignature = null;
+        let lastSimCardsSignature = null;
 
 
 appOnReady(() => {
@@ -18,19 +20,24 @@ appOnReady(() => {
             renderDriverList();
             renderLogs();
             renderActiveTasks();
-            setInterval(renderActiveTasks, 5000);
             setupMobileSidebar();
             updateDriverSimCards();
             updateStatsCounters();
 
             // Pantau lokasi driver yang tersimpan di Firestore.
             refreshDriverLocations();
-            setInterval(refreshDriverLocations, 5000);
 
             // Pantau perubahan data armada (status En Route/Standy disinkronkan
             // dari tugas permintaan) supaya daftar & statistik selalu cocok.
             refreshAmbulanceData();
-            setInterval(refreshAmbulanceData, 5000);
+
+            /* Satu tick 5 detik untuk semua data dashboard (bukan tiga timer
+               terpisah), dan tick dilewati saat aplikasi di latar belakang. */
+            appPoll(() => {
+                refreshDriverLocations();
+                refreshAmbulanceData();
+                renderActiveTasks();
+            }, 5000);
 
             // Update seketika bila halaman ini juga menjalankan geotracker
             // (sesi driver aktif di dashboard) — tanpa menunggu interval 5 detik.
@@ -127,11 +134,19 @@ appOnReady(() => {
                 return;
             }
 
-            map = L.map('map').setView([51.505, -0.09], 13);
-            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19,
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            map = L.map('map').setView([CENTER_LAT, CENTER_LNG], 12);
+            // Basemap lokal: ubin peta tersimpan di assets/tiles, tanpa permintaan
+            // ke server tile online. Zoom 11-12 tersedia; di atas itu ubin
+            // diperbesar (maxNativeZoom) agar halaman tidak kosong.
+            L.tileLayer(BASEMAP_TILES, {
+                minZoom: 10,
+                maxZoom: 16,
+                minNativeZoom: 11,
+                maxNativeZoom: 12,
+                bounds: L.latLngBounds(BASEMAP_BOUNDS),
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
+            map.setMaxBounds(L.latLngBounds(BASEMAP_BOUNDS).pad(0.15));
 
             // Leaflet Dark Theme Configuration
             // minZoom/maxBounds agar peta tidak keluar dari area screenshot,
@@ -175,10 +190,17 @@ appOnReady(() => {
             // Refit otomatis tiap ukuran panel peta berubah (CDN selesai dimuat, font termuat,
             // jendela di-resize) supaya screenshot selalu menutupi seluruh panel peta.
             if (window.ResizeObserver) {
+                // Debounce: beberapa notifikasi ukuran datang berurutan saat layout
+                // selesai; hitung ulang sekali saja agar peta tidak berat.
+                let resizeTimer = null;
                 new ResizeObserver(function () {
                     if (!map) return;
-                    map.invalidateSize({ animate: false });
-                    fitBasemapView();
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(function () {
+                        if (!map) return;
+                        map.invalidateSize({ animate: false });
+                        fitBasemapView();
+                    }, 150);
                 }).observe(document.getElementById('map'));
             }
         }
@@ -657,9 +679,6 @@ appOnReady(() => {
             const countEl = document.getElementById('task-count');
             if (!container) return;
 
-            // Marker lokasi permintaan ikut disegarkan tiap daftar tugas dirender.
-            renderRequestMarkers();
-
             const list = getAllPermintaan().filter(p => {
                 if (!p || p.status !== 'Diproses') return false;
                 // Section "Tugas Ambulans" — hanya penugasan yang butuh ambulans;
@@ -669,6 +688,15 @@ appOnReady(() => {
                 return arr.length > 0;
             });
             if (countEl) countEl.textContent = list.length + ' Aktif';
+
+            // Daftar tugas berubah hanya saat admin/driver bertindak; lewati
+            // render + marker bila isinya masih sama.
+            const signature = dataSignature(list);
+            if (signature === lastActiveTasksSignature) return;
+            lastActiveTasksSignature = signature;
+
+            // Marker lokasi permintaan ikut disegarkan saat data berubah.
+            renderRequestMarkers();
 
             if (!list.length) {
                 container.innerHTML = '<p class="text-[11px] text-slate-500 text-center py-3">' +
@@ -992,6 +1020,13 @@ appOnReady(() => {
         function updateDriverSimCards() {
             const container = document.getElementById('driver-response-buttons');
             const statusBox = document.getElementById('sim-broadcast-status');
+
+            if (!container || !statusBox) return;
+
+            // Kartu simulasi hanya dirender ulang bila data driver/broadcast berubah.
+            const signature = dataSignature([drivers, activeBroadcast]);
+            if (signature === lastSimCardsSignature) return;
+            lastSimCardsSignature = signature;
 
             if (!activeBroadcast) {
                 statusBox.innerHTML = `

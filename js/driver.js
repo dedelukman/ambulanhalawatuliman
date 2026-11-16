@@ -10,6 +10,7 @@ let lastNotifIds = null;
 let taskInteractionActive = false;
 let taskRenderPending = false;
 let taskInteractionTimer = null;
+let lastTaskRenderSignature = null;
 
 appOnReady(() => {
     // Guard cadangan (bila JS di <head> tidak jalan karena alasan tertentu)
@@ -27,8 +28,9 @@ appOnReady(() => {
     setupTaskActions();
     setupTaskInteractionGuard();
     renderTasks();
-    // Perbarui notifikasi & daftar tugas tiap 5 detik agar broadcast admin langsung muncul
-    setInterval(renderTasks, 5000);
+    // Perbarui notifikasi & daftar tugas tiap 5 detik agar broadcast admin langsung muncul.
+    // appPoll melewati tick saat aplikasi di latar belakang.
+    appPoll(renderTasks, 5000);
     document.addEventListener('firestore:update', event => {
         const key = event.detail && event.detail.key;
         if (key === STORE_KEYS.PERMINTAAN || key === STORE_KEYS.AMBULANCES ||
@@ -112,11 +114,23 @@ function renderTasks() {
     const notifBox = document.getElementById('taskNotifList');
     const notifEmpty = document.getElementById('taskNotifEmpty');
     const notifCount = document.getElementById('taskNotifCount');
-    if (!notifBox || !driverSession) return;
+    const container = document.getElementById('taskList');
+    const empty = document.getElementById('taskEmpty');
+    if (!notifBox || !container || !empty || !driverSession) return;
 
-    // 1. Notifikasi tugas masuk: Diproses & belum dikonfirmasi driver ini
     const incoming = (typeof getPermintaanNotificationsForDriver === 'function')
         ? getPermintaanNotificationsForDriver(driverSession.id) : [];
+    const mine = (typeof getPermintaanForDriver === 'function')
+        ? getPermintaanForDriver(driverSession.id) : [];
+    mine.sort((a, b) => String((b && b.createdAt) || '').localeCompare(String((a && a.createdAt) || '')));
+
+    /* Data tugas jarang berubah; menulis ulang innerHTML tiap 5 detik memaksa
+       browser menghitung layout lagi dan memutus pilihan pada <select>. */
+    const signature = dataSignature([incoming, mine]);
+    if (signature === lastTaskRenderSignature) return;
+    lastTaskRenderSignature = signature;
+
+    // 1. Notifikasi tugas masuk: Diproses & belum dikonfirmasi driver ini
     notifBox.innerHTML = incoming.map(renderIncomingTask).join('');
     if (notifEmpty) notifEmpty.classList.toggle('hidden', incoming.length > 0);
     if (notifCount) {
@@ -133,14 +147,6 @@ function renderTasks() {
     lastNotifIds = ids;
 
     // 2. Tugas saya: yang sudah dikonfirmasi (menunggu selesai / sudah selesai)
-    const container = document.getElementById('taskList');
-    const empty = document.getElementById('taskEmpty');
-    if (!container || !empty) return;
-
-    const mine = (typeof getPermintaanForDriver === 'function')
-        ? getPermintaanForDriver(driverSession.id) : [];
-    mine.sort((a, b) => String((b && b.createdAt) || '').localeCompare(String((a && a.createdAt) || '')));
-
     container.innerHTML = mine.map(renderTaskRow).join('');
     empty.classList.toggle('hidden', mine.length > 0);
 }

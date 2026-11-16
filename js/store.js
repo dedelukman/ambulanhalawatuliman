@@ -59,6 +59,26 @@ function appOnReady(callback) {
     }
 }
 
+/* Poling untuk halaman panel: lewati tick saat aplikasi di latar belakang
+   (timer WebView tetap berjalan) dan langsung jalankan sekali saat aplikasi
+   kembali terlihat, sehingga data tidak basi setelah dibuka lagi. */
+function appPoll(fn, ms) {
+    const tick = function () { if (!document.hidden) fn(); };
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden) tick();
+    });
+    return setInterval(tick, ms);
+}
+
+/* Tanda isi data untuk melewati render DOM bila tidak ada perubahan. */
+function dataSignature(value) {
+    try {
+        return JSON.stringify(value);
+    } catch (err) {
+        return String(Date.now());
+    }
+}
+
 function storeRead(key, fallback) {
     if (isFirestoreKey(key)) {
         return Object.prototype.hasOwnProperty.call(__cache, key) ? __cache[key] : fallback;

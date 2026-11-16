@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Palang putih (layanan medis) di dalam safe zone adaptive icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M46,26h16v20h20v16h-20v20h-16v-20h-20v-16h20z" />
+</vector>

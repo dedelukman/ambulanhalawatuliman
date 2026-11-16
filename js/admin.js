@@ -54,6 +54,7 @@ let reqRangeFrom = '';    // filter rentang waktu tab permintaan (YYYY-MM-DD)
 let reqRangeTo = '';
 let lastSeenReqIds = null;   // null = render senyap saat pertama kali
 let lastStatusSnapshot = null;
+let lastNotificationsSignature = null;
 
 appOnReady(() => {
     // Panel admin khusus admin: sesi driver/janaiz tidak boleh ikut terbuka.
@@ -517,7 +518,7 @@ function setupNotifications() {
 
     renderNotifications();
     refreshStatusData();
-    setInterval(() => {
+    appPoll(() => {
         refreshStatusData();
         renderNotifications();
     }, 5000);
@@ -551,6 +552,12 @@ function refreshStatusData() {
 
 function renderNotifications() {
     const waiting = getAllPermintaan().filter(p => p && p.status === 'Menunggu');
+
+    // Lewati penulisan ulang panel bila daftar permintaan baru tidak berubah.
+    const signature = dataSignature(waiting);
+    if (signature === lastNotificationsSignature) return;
+    lastNotificationsSignature = signature;
+
     const badge = document.getElementById('notifBadge');
     if (badge) {
         badge.classList.toggle('hidden', waiting.length === 0);

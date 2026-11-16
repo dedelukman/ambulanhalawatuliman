@@ -1,0 +1,4 @@
+npm notice run si-ambulans-android@1.0.0 npx
+npm notice run firebase login:list
+Logged in as dlukmanul.h@gmail.com
+EXIT:0

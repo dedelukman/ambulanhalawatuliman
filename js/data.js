@@ -7,6 +7,9 @@
         // Karena bounds ini dipakai untuk menempel gambar, seluruh koordinat marker
         // (lat/lng) otomatis sejajar dengan peta pada screenshot.
         const BASEMAP_SRC = 'assets/peta-jabodetabek.png';
+        // Ubin basemap lokal (hasil unduhan area BASEMAP_BOUNDS, zoom 11-12).
+        // Dipakai menggantikan tile OSM online agar peta tetap tampil offline.
+        const BASEMAP_TILES = 'assets/tiles/{z}/{x}/{y}.png';
         // Bounding box khusus area Bojonggede dan sekitarnya (lebih dekat/besar)
        const BASEMAP_BOUNDS = [
     [-6.566936, 106.697889],   // Sudut bawah-kiri (Selatan - Barat)

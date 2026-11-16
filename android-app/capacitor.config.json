@@ -1,0 +1,12 @@
+{
+  "appId": "com.halawatuliman.siambulans",
+  "appName": "SI Ambulans",
+  "webDir": "www",
+  "android": {
+  "plugins": {
+    "LocalNotifications": {
+      "smallIcon": "ic_stat_ambulance",
+      "iconColor": "#DC2626"
+    }
+  }
+}

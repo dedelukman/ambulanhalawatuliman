@@ -6,6 +6,7 @@
 
 let janaizSession = null;
 let lastJanaizNotifIds = null;
+let lastJanaizRenderSignature = null;
 
 appOnReady(() => {
     // Guard cadangan (bila JS di <head> tidak jalan karena alasan tertentu)
@@ -40,8 +41,9 @@ appOnReady(() => {
     setupTaskActions();
     renderTasks();
 
-    // Perbarui notifikasi & daftar tugas tiap 5 detik agar tugas baru langsung muncul
-    setInterval(renderTasks, 5000);
+    // Perbarui notifikasi & daftar tugas tiap 5 detik agar tugas baru langsung muncul.
+    // appPoll melewati tick saat aplikasi di latar belakang.
+    appPoll(renderTasks, 5000);
     document.addEventListener('firestore:update', event => {
         const key = event.detail && event.detail.key;
         if (key === STORE_KEYS.PERMINTAAN) {
@@ -80,11 +82,23 @@ function renderTasks() {
     const notifBox = document.getElementById('janaizNotifList');
     const notifEmpty = document.getElementById('janaizNotifEmpty');
     const notifCount = document.getElementById('janaizNotifCount');
-    if (!notifBox) return;
+    const container = document.getElementById('janaizTaskList');
+    const empty = document.getElementById('janaizTaskEmpty');
+    if (!notifBox || !container || !empty) return;
 
-    // 1. Notifikasi: Diproses & belum dikonfirmasi tim ini
     const incoming = (typeof getJanaizNotificationsFor === 'function')
         ? getJanaizNotificationsFor(janaizSession.id) : [];
+    const mine = (typeof getJanaizTasksFor === 'function')
+        ? getJanaizTasksFor(janaizSession.id) : [];
+    mine.sort((a, b) => String((b && b.createdAt) || '').localeCompare(String((a && a.createdAt) || '')));
+
+    /* Hanya render ulang bila isi tugas berubah (render tiap 5 detik membuat
+       browser menghitung layout lagi tanpa ada yang baru). */
+    const signature = dataSignature([incoming, mine]);
+    if (signature === lastJanaizRenderSignature) return;
+    lastJanaizRenderSignature = signature;
+
+    // 1. Notifikasi: Diproses & belum dikonfirmasi tim ini
     notifBox.innerHTML = incoming.map(renderIncomingTask).join('');
     if (notifEmpty) notifEmpty.classList.toggle('hidden', incoming.length > 0);
     if (notifCount) {
@@ -101,14 +115,6 @@ function renderTasks() {
     lastJanaizNotifIds = ids;
 
     // 2. Tugas saya: sudah dikonfirmasi (menunggu selesai / sudah selesai)
-    const container = document.getElementById('janaizTaskList');
-    const empty = document.getElementById('janaizTaskEmpty');
-    if (!container || !empty) return;
-
-    const mine = (typeof getJanaizTasksFor === 'function')
-        ? getJanaizTasksFor(janaizSession.id) : [];
-    mine.sort((a, b) => String((b && b.createdAt) || '').localeCompare(String((a && a.createdAt) || '')));
-
     container.innerHTML = mine.map(renderTaskRow).join('');
     empty.classList.toggle('hidden', mine.length > 0);
 }

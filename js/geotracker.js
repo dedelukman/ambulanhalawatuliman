@@ -59,6 +59,39 @@ function stopGeoTracking(reason) {
     emitGeo('si-geo-state', { active: false, reason: reason || 'stop' });
 }
 
+/* ---------- Pembatasan penyimpanan posisi ----------
+   watchPosition mengirim posisi hampir tiap detik. Menulis seluruh dokumen
+   driver ke Firestore pada setiap posisi membuat snapshot memicu render ulang
+   di semua halaman, jadi posisi disimpan paling sering tiap 8 detik (dan hanya
+   bila berpindah minimal 10 m). UI tetap menerima semua pembaruan. */
+const GEO_SAVE_INTERVAL_MS = 8000;
+const GEO_SAVE_MIN_METERS = 10;
+let geoLastSavedAt = 0;
+let geoLastSavedLat = null;
+let geoLastSavedLng = null;
+
+function geoDistanceMeters(lat1, lng1, lat2, lng2) {
+    const R = 6371000;
+    const toRad = deg => deg * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function shouldSaveGeoPosition(lat, lng) {
+    if (Date.now() - geoLastSavedAt < GEO_SAVE_INTERVAL_MS) return false;
+    if (geoLastSavedLat === null) return true;
+    return geoDistanceMeters(geoLastSavedLat, geoLastSavedLng, lat, lng) >= GEO_SAVE_MIN_METERS;
+}
+
+function markGeoSaved(lat, lng) {
+    geoLastSavedAt = Date.now();
+    geoLastSavedLat = lat;
+    geoLastSavedLng = lng;
+}
+
 function onGeoPosition(pos) {
     // Sesi driver berakhir (mis. logout di tab lain)? hentikan tracking.
     if (typeof isDriverLoggedIn === 'function' && !isDriverLoggedIn()) {
@@ -75,7 +108,7 @@ function onGeoPosition(pos) {
     const lng = pos.coords.longitude;
     geoUpdateCount++;
 
-    const updated = (typeof patchDriverRecord === 'function')
+    const updated = (shouldSaveGeoPosition(lat, lng) && typeof patchDriverRecord === 'function')
         ? patchDriverRecord(session.id, {
             lat: lat,
             lng: lng,
@@ -83,6 +116,7 @@ function onGeoPosition(pos) {
             locationName: 'GPS: ' + fmtGeoCoord(lat, lng)
         })
         : null;
+    if (updated) markGeoSaved(lat, lng);
 
     emitGeo('si-geo-update', {
         lat: lat,
