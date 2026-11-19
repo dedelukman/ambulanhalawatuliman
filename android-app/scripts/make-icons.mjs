@@ -135,39 +135,9 @@ const MIPMAPS = [
   ['xxxhdpi', 192]
 ];
 
-/* ---------- ikon notifikasi (siluet putih di latar transparan) ----------
-   Android menampilkan smallIcon sebagai topeng putih; ikon yang seluruhnya
-   transparan membuat notifikasi tampak kosong atau dibuang sebagian launcher. */
-function drawNotificationIcon(size) {
-  const ss = 4;
-  const big = size * ss;
-  const out = Buffer.alloc(size * size * 4);
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      let covered = 0;
-      for (let sy = 0; sy < ss; sy++) {
-        for (let sx = 0; sx < ss; sx++) {
-          if (insideCross(x * ss + sx + 0.5, y * ss + sy + 0.5, big, big * 0.155)) covered++;
-        }
-      }
-      const idx = (y * size + x) * 4;
-      if (covered === 0) continue;
-      out[idx] = 255;
-      out[idx + 1] = 255;
-      out[idx + 2] = 255;
-      out[idx + 3] = Math.round((covered / (ss * ss)) * 255);
-    }
-  }
-  return out;
-}
-
-for (const [density, size] of MIPMAPS) {
-  const px = Math.round(size / 2) * 2; // 24/36/48/72/96 dp
-  const full = path.join(appDir, 'android/app/src/main/res/drawable-' + density + '/ic_stat_ambulance.png');
-  mkdirSync(path.dirname(full), { recursive: true });
-  writeFileSync(full, encodePng(px, px, drawNotificationIcon(px)));
-  console.log('[icons] drawable-' + density + '/ic_stat_ambulance.png (' + px + ')');
-}
+/* ---------- ikon notifikasi ----------
+   Dibuat oleh scripts/make-launcher-icons.py (siluet ambulans putih),
+   bukan di sini, agar tidak menimpa ikon yang sudah disesuaikan. */
 
 /* ---------- feature graphic Play Store ---------- */
 {
