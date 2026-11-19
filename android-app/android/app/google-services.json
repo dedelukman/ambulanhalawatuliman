@@ -8,6 +8,25 @@
   "client": [
     {
       "client_info": {
+        "mobilesdk_app_id": "1:810299581241:android:ed3bd040cc110aa20dfee8",
+        "android_client_info": {
+          "package_name": "com.halawatuliman.ambulan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBgdInITjflPDpVT5cv_J2cqmpmHCjiBqE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
         "mobilesdk_app_id": "1:810299581241:android:fd29c823ff0247680dfee8",
         "android_client_info": {
           "package_name": "com.halawatuliman.siambulans"

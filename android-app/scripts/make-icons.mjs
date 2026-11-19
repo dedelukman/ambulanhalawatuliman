@@ -122,14 +122,11 @@ function drawIcon(size, { shape = 'rounded', background = RED, cross = WHITE, cr
   return out;
 }
 
-function writeIcon(file, size, options) {
-  const full = path.join(appDir, file);
-  mkdirSync(path.dirname(full), { recursive: true });
-  writeFileSync(full, encodePng(size, size, drawIcon(size, options)));
-  console.log('[icons] ' + file + ' (' + size + 'x' + size + ')');
-}
-
-/* ---------- ikon launcher legacy (Android 7 ke bawah) ---------- */
+/* ---------- ikon launcher ----------
+   Ikon launcher dan ikon Play Store berasal dari emblem di
+   play-store/icon-512.png, bukan digambar di sini. Untuk membuat ulang:
+       python scripts/make-launcher-icons.py
+   Skrip ini hanya membuat ikon notifikasi dan feature graphic. */
 const MIPMAPS = [
   ['mdpi', 48],
   ['hdpi', 72],
@@ -137,11 +134,6 @@ const MIPMAPS = [
   ['xxhdpi', 144],
   ['xxxhdpi', 192]
 ];
-
-for (const [density, size] of MIPMAPS) {
-  writeIcon('android/app/src/main/res/mipmap-' + density + '/ic_launcher.png', size, { shape: 'rounded' });
-  writeIcon('android/app/src/main/res/mipmap-' + density + '/ic_launcher_round.png', size, { shape: 'circle' });
-}
 
 /* ---------- ikon notifikasi (siluet putih di latar transparan) ----------
    Android menampilkan smallIcon sebagai topeng putih; ikon yang seluruhnya
@@ -177,9 +169,7 @@ for (const [density, size] of MIPMAPS) {
   console.log('[icons] drawable-' + density + '/ic_stat_ambulance.png (' + px + ')');
 }
 
-/* ---------- aset Play Store ---------- */
-writeIcon('play-store/icon-512.png', 512, { shape: 'rounded' });
-
+/* ---------- feature graphic Play Store ---------- */
 {
   const width = 1024;
   const height = 500;

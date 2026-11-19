@@ -110,7 +110,7 @@ npm run apk                       # APK baru dengan push aktif
 
 1. **Daftarkan aplikasi Android di Firebase**
    - Firebase Console → proyek `ambulanhalawatuliman` → Add app → Android.
-   - Package name: `com.halawatuliman.siambulans`.
+   - Package name: `com.halawatuliman.ambulan`.
    - Unduh `google-services.json` dan letakkan di `android-app/android/app/google-services.json`.
    - Build ulang (`npm run release`). Plugin Google Services otomatis aktif bila file itu ada.
 
@@ -179,5 +179,5 @@ Yang perlu diisi di Play Console:
   permanen selama pelacakan. Ini normal dan tidak bisa disembunyikan.
 - GPS hanya aktif setelah driver login, dan berhenti otomatis saat logout.
 - Notifikasi saat aplikasi dimatikan memerlukan langkah push di atas.
-- Ganti `appId` (`com.halawatuliman.siambulans`) hanya **sebelum** unggahan pertama.
+- Ganti `appId` (`com.halawatuliman.ambulan`) hanya **sebelum** unggahan pertama.
   Setelah terbit, package name tidak bisa diubah.

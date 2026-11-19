@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">SI Ambulans</string>
     <string name="title_activity_main">SI Ambulans</string>
-    <string name="package_name">com.halawatuliman.siambulans</string>
-    <string name="custom_url_scheme">com.halawatuliman.siambulans</string>
+    <string name="package_name">com.halawatuliman.ambulan</string>
+    <string name="custom_url_scheme">com.halawatuliman.ambulan</string>
 </resources>

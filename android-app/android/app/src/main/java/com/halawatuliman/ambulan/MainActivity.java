@@ -1,4 +1,4 @@
-package com.halawatuliman.siambulans;
+package com.halawatuliman.ambulan;
 
 import android.os.Bundle;
 import android.webkit.WebView;
@@ -128,4 +128,7 @@ public class MainActivity extends BridgeActivity {
         }
         return "https://localhost/index.html";
     }
+
+
+    
 }

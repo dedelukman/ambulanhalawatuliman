@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kebijakan Privasi — SI-Ambulans Relawan</title>
+    <meta name="description" content="Kebijakan privasi aplikasi SI-Ambulans Relawan Markaz Halawatul Iman: data yang dikumpulkan, tujuan, penyimpanan, dan hak pengguna.">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="app.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+    <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
+
+        <header class="flex items-center gap-3 pt-6 pb-5">
+            <div class="bg-red-600 p-3 rounded-2xl text-white shadow-lg shadow-red-600/30">
+                <i class="fa-solid fa-truck-medical text-xl"></i>
+            </div>
+            <div>
+                <h1 class="font-bold text-base leading-tight text-slate-100">SI-AMBULANS RELAWAN</h1>
+                <p class="text-xs text-slate-400">Markaz Halawatul Iman</p>
+            </div>
+        </header>
+
+        <a href="index.html" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 mb-5">
+            <i class="fa-solid fa-arrow-left"></i> Kembali ke beranda
+        </a>
+
+        <article class="card space-y-5 text-sm leading-relaxed text-slate-300">
+            <div>
+                <h2 class="text-lg font-bold text-slate-50">Kebijakan Privasi</h2>
+                <p class="text-[11px] text-slate-500 mt-1">Berlaku sejak 1 November 2026 · Diperbarui 19 November 2026</p>
+            </div>
+
+            <p>
+                Aplikasi <strong class="text-slate-100">SI-Ambulans Relawan</strong> dikelola oleh
+                Markaz Halawatul Iman (Yayasan Halawatul Iman), Bogor, Jawa Barat. Kebijakan ini
+                menjelaskan data apa yang dikumpulkan aplikasi, mengapa data itu diperlukan, dan
+                bagaimana data tersebut disimpan.
+            </p>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">1. Data yang dikumpulkan</h3>
+                <ul class="list-disc pl-5 space-y-1.5">
+                    <li><strong class="text-slate-200">Data permohonan layanan:</strong> nama pemohon, nomor telepon/WhatsApp, hubungan dengan pasien atau jenazah, nama pasien/jenazah, jenis kelamin, umur, riwayat sakit, serta keterangan waktu dan tempat (rumah, tempat dishalatkan, tujuan pengantaran, lokasi pemakaman).</li>
+                    <li><strong class="text-slate-200">Lokasi:</strong> titik koordinat perangkat saat Anda menekan tombol lokasi (dipakai untuk mengisi alamat dan tautan peta). Untuk akun driver, lokasi dikirim berkala selama bertugas agar posisi ambulans dapat dilacak.</li>
+                    <li><strong class="text-slate-200">Data akun petugas:</strong> nama pengguna, peran (admin, driver, atau Tim Janaiz), nomor telepon, dan aktivitas tugas (konfirmasi, penyelesaian tugas, serta catatan aktivitas).</li>
+                    <li><strong class="text-slate-200">Data teknis:</strong> token notifikasi perangkat (Firebase Cloud Messaging) dan versi aplikasi, agar notifikasi tugas dapat dikirim ke perangkat yang tepat.</li>
+                </ul>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">2. Tujuan penggunaan</h3>
+                <ul class="list-disc pl-5 space-y-1.5">
+                    <li>Meneruskan permohonan ambulans atau pengurusan jenazah kepada petugas yang bertugas.</li>
+                    <li>Menentukan lokasi penjemputan dan tujuan pengantaran.</li>
+                    <li>Mengirim notifikasi tugas kepada admin, driver, dan Tim Janaiz.</li>
+                    <li>Mencatat riwayat layanan untuk keperluan koordinasi internal dan laporan kegiatan yayasan.</li>
+                </ul>
+                <p>Kami tidak menggunakan data Anda untuk iklan, tidak menjualnya, dan tidak memakai pelacakan iklan pihak ketiga.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">3. Izin perangkat</h3>
+                <ul class="list-disc pl-5 space-y-1.5">
+                    <li><strong class="text-slate-200">Lokasi (termasuk latar belakang):</strong> dipakai saat mengisi alamat otomatis dan, khusus akun driver yang sedang bertugas, untuk pelacakan posisi ambulans. Pelacakan berhenti saat driver logout atau tugas berakhir.</li>
+                    <li><strong class="text-slate-200">Notifikasi:</strong> menampilkan pemberitahuan tugas baru atau perubahan status permohonan.</li>
+                    <li><strong class="text-slate-200">Internet:</strong> mengirim dan menerima data permohonan secara real-time.</li>
+                </ul>
+                <p>Izin dapat dicabut kapan saja melalui Pengaturan Android. Bila izin lokasi dicabut, alamat harus diisi manual.</p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">4. Penyimpanan dan pengelola</h3>
+                <p>
+                    Data disimpan pada layanan <strong class="text-slate-200">Google Firebase</strong>
+                    (Cloud Firestore dan Cloud Messaging) sebagai penyedia infrastruktur, dengan
+                    transmisi terenkripsi HTTPS. Akses dibatasi untuk pengurus Markaz Halawatul Iman
+                    yang berwenang melalui akun petugas.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">5. Pembagian data</h3>
+                <p>
+                    Data permohonan dibagikan hanya kepada petugas yang menangani permintaan tersebut
+                    (admin, driver, dan/atau Tim Janaiz). Kami tidak membagikan data pribadi kepada
+                    pihak ketiga untuk tujuan komersial.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">6. Masa simpan dan penghapusan</h3>
+                <p>
+                    Riwayat permohonan disimpan selama diperlukan untuk keperluan koordinasi dan
+                    pelaporan kegiatan yayasan. Anda dapat meminta penghapusan data permohonan atau
+                    data akun dengan menghubungi kami melalui WhatsApp di bawah; permintaan akan
+                    diproses paling lambat 30 hari kerja.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">7. Anak-anak</h3>
+                <p>
+                    Aplikasi ini ditujukan untuk pengguna dewasa (pemohon layanan dan petugas).
+                    Kami tidak dengan sengaja mengumpulkan data anak tanpa sepengetahuan orang tua
+                    atau wali; data nama dan umur jenazah/pasien diisi oleh pemohon dewasa.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">8. Keamanan</h3>
+                <p>
+                    Akses data dibatasi dengan aturan keamanan Firebase dan akun petugas. Meski
+                    demikian, tidak ada sistem yang sepenuhnya bebas risiko; laporkan bila Anda
+                    menemukan akses yang mencurigakan.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">9. Perubahan kebijakan</h3>
+                <p>
+                    Bila kebijakan ini berubah, tanggal pembaruan di atas akan diperbarui dan
+                    perubahan penting akan diumumkan melalui aplikasi atau kanal resmi yayasan.
+                </p>
+            </section>
+
+            <section class="space-y-2">
+                <h3 class="font-semibold text-slate-100">10. Hubungi kami</h3>
+                <p>
+                    Markaz Halawatul Iman — Bogor, Jawa Barat.<br>
+                    WhatsApp: <a href="https://wa.me/6281260002341" class="text-red-400 hover:text-red-300"
+                                 target="_blank" rel="noopener">0812-6000-2341</a>
+                </p>
+            </section>
+        </article>
+
+        <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
+            SI-Ambulans Relawan · Markaz Halawatul Iman<br>
+            <a href="index.html" class="text-slate-500 hover:text-slate-300">Beranda</a>
+        </footer>
+    </div>
+
+</body>
+</html>

@@ -15,7 +15,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const appDir = path.resolve(here, '..');
 
 const PROJECT = 'ambulanhalawatuliman';
-const PACKAGE_NAME = 'com.halawatuliman.siambulans';
+const PACKAGE_NAME = 'com.halawatuliman.ambulan';
 const APP_LABEL = 'SI Ambulans';
 const CONFIG_PATH = path.join(appDir, 'android', 'app', 'google-services.json');
 
