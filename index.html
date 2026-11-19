@@ -183,6 +183,15 @@
                     <div id="jDeathWrap">
                     <fieldset class="border border-slate-800 rounded-xl p-3">
                         <legend class="text-[11px] text-slate-400 px-1">Meninggal</legend>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="-1" data-date-day="jDeathDay" data-date-input="jDeathDate">
+                                <i class="fa-solid fa-calendar-minus"></i> Kemarin
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0" data-date-day="jDeathDay" data-date-input="jDeathDate">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="label" for="jDeathDay">Hari</label>
@@ -203,6 +212,15 @@
                     <div id="jReqWrap">
                     <fieldset class="border border-slate-800 rounded-xl p-3">
                         <legend class="text-[11px] text-slate-400 px-1">Permohonan Pengurusan Jenazah</legend>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0" data-date-day="jReqDay" data-date-input="jReqDate">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1" data-date-day="jReqDay" data-date-input="jReqDate">
+                                <i class="fa-solid fa-calendar-plus"></i> Besok
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="label" for="jReqDay">Hari</label>
@@ -284,6 +302,15 @@
                     <div id="aReqWrap">
                     <fieldset class="border border-slate-800 rounded-xl p-3">
                         <legend class="text-[11px] text-slate-400 px-1">Permohonan Ambulan</legend>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1">
+                                <i class="fa-solid fa-calendar-plus"></i> Besok
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="label" for="aReqDay">Hari</label>
@@ -298,15 +325,6 @@
                                 <label class="label" for="aReqTime">Jam</label>
                                 <input id="aReqTime" class="input" type="time">
                             </div>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-2 mt-2">
-                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
-                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0">
-                                <i class="fa-solid fa-calendar-day"></i> Hari ini
-                            </button>
-                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1">
-                                <i class="fa-solid fa-calendar-plus"></i> Besok
-                            </button>
                         </div>
                     </fieldset>
                     </div>
@@ -332,6 +350,15 @@
                     </p>
                     <fieldset class="border border-slate-800 rounded-xl p-3">
                         <legend class="text-[11px] text-slate-400 px-1">Jadwal Pengantaran Jenazah</legend>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0" data-date-day="ajReqDay" data-date-input="ajReqDate">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1" data-date-day="ajReqDay" data-date-input="ajReqDate">
+                                <i class="fa-solid fa-calendar-plus"></i> Besok
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="label" for="ajReqDay">Hari</label>
@@ -371,6 +398,15 @@
                     <div id="dAmbWrap">
                     <fieldset class="border border-slate-800 rounded-xl p-3">
                         <legend class="text-[11px] text-slate-400 px-1">Permohonan Ambulance</legend>
+                        <div class="flex flex-wrap items-center gap-2 mb-2">
+                            <span class="text-[10px] text-slate-500 mr-auto">Isi cepat hari &amp; tanggal:</span>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="0" data-date-day="dAmbDay" data-date-input="dAmbDate">
+                                <i class="fa-solid fa-calendar-day"></i> Hari ini
+                            </button>
+                            <button type="button" class="btn btn-ghost btn-sm" data-date-shortcut="1" data-date-day="dAmbDay" data-date-input="dAmbDate">
+                                <i class="fa-solid fa-calendar-plus"></i> Besok
+                            </button>
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <div>
                                 <label class="label" for="dAmbDay">Hari</label>

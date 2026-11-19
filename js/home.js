@@ -170,15 +170,18 @@ function closeSuccessModal() {
     if (modal) modal.classList.remove('is-open');
 }
 
-/* ---------- Shortcut Hari ini / Besok (Permohonan Ambulan) ----------
-   Tombol mengisi otomatis dropdown Hari dan input Tanggal permohonan. */
+/* ---------- Shortcut Hari ini / Besok / Kemarin ----------
+   Tombol mengisi otomatis dropdown Hari dan input Tanggal.
+   Target diatur lewat data-date-day & data-date-input; default permohonan ambulans. */
 const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 
 function setupDateShortcuts() {
     document.querySelectorAll('[data-date-shortcut]').forEach(btn => {
         btn.addEventListener('click', () => {
             const offset = Number(btn.getAttribute('data-date-shortcut')) || 0;
-            fillRequestDate('aReqDay', 'aReqDate', offset);
+            const dayId = btn.getAttribute('data-date-day') || 'aReqDay';
+            const dateId = btn.getAttribute('data-date-input') || 'aReqDate';
+            fillRequestDate(dayId, dateId, offset);
         });
     });
 }
