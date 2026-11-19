@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Panel Admin — SI-Ambulans Relawan</title>
+    <title>Panel Admin — Ambulan dan Janaiz</title>
 
       <!-- di setiap HTML, paling atas -->
     <script src="js/firebase-init.js"></script>
@@ -122,6 +122,14 @@
                     <label class="label" for="reqRangeTo">Sampai tanggal</label>
                     <input id="reqRangeTo" class="input" type="date">
                 </div>
+            </div>
+            <!-- Preset cepat -->
+            <div class="flex flex-wrap gap-1.5 mt-3" id="reqRangePresets">
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="today">Hari ini</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="7">7 hari</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="30">30 hari</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="thisMonth">Bulan ini</button>
+                <button type="button" class="btn btn-ghost btn-sm" data-preset="thisYear">Tahun ini</button>
             </div>
             <p class="text-[11px] text-slate-500 mt-2" id="reqRangeInfo">–</p>
         </div>

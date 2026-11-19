@@ -678,7 +678,8 @@ function getPermintaanNotificationsForDriver(driverId) {
         !isPermintaanConfirmedBy(p, driverId) && !isDriverSideSelesai(p));
 }
 
-/* Semua permintaan yang sudah dikonfirmasi driver tertentu ("Tugas Saya"). */
+/* Semua permintaan yang sudah dikonfirmasi driver tertentu ("Tugas Saya").
+   Hanya tugas ambulans; permintaan pengurusan jenazah murni bukan tugas driver. */
 function getPermintaanForDriver(driverId) {
     const driverKey = String(driverId || '').trim();
     if (!driverKey) return [];
@@ -703,6 +704,7 @@ function getPermintaanForDriver(driverId) {
 
     return getAllPermintaan().filter(p => {
         if (!p) return false;
+        if (!isAmbulanPermintaan(p)) return false;
 
         const assignedSource = p.assignedDrivers;
         const assigned = Array.isArray(assignedSource)

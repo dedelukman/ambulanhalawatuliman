@@ -71,6 +71,7 @@ appOnReady(() => {
     setupTabs();
     setupActions();
     setupNotifications();
+    initReqRange();
     renderAll();
 });
 
@@ -120,6 +121,9 @@ function setupActions() {
         if (to) to.value = '';
         renderAll();
     });
+    document.querySelectorAll('#reqRangePresets [data-preset]').forEach(btn => {
+        btn.addEventListener('click', () => applyReqPreset(btn.getAttribute('data-preset')));
+    });
 
     document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 }
@@ -134,6 +138,54 @@ function switchTab(tab) {
     });
     const rangeBox = document.getElementById('reqRangeFilter');
     if (rangeBox) rangeBox.classList.toggle('hidden', tab !== 'permintaan');
+    renderAll();
+}
+
+/* Rentang default tab permintaan: 30 hari terakhir (termasuk hari ini). */
+function initReqRange() {
+    const range = reqPresetRange('30');
+    reqRangeFrom = range.from;
+    reqRangeTo = range.to;
+    const from = document.getElementById('reqRangeFrom');
+    const to = document.getElementById('reqRangeTo');
+    if (from) from.value = reqRangeFrom;
+    if (to) to.value = reqRangeTo;
+}
+
+function reqDateInput(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+
+function reqPresetRange(preset) {
+    const today = new Date();
+    const to = reqDateInput(today);
+    let from = '';
+    if (preset === 'today') {
+        from = to;
+    } else if (preset === 'thisMonth') {
+        from = today.getFullYear() + '-' + String(today.getMonth() + 1).padStart(2, '0') + '-01';
+    } else if (preset === 'thisYear') {
+        from = today.getFullYear() + '-01-01';
+    } else {
+        const days = parseInt(preset, 10);
+        if (!isNaN(days)) {
+            const start = new Date(today);
+            start.setDate(start.getDate() - (days - 1));
+            from = reqDateInput(start);
+        }
+    }
+    return { from: from, to: to };
+}
+
+function applyReqPreset(preset) {
+    const range = reqPresetRange(preset);
+    reqRangeFrom = range.from;
+    reqRangeTo = range.to;
+    const from = document.getElementById('reqRangeFrom');
+    const to = document.getElementById('reqRangeTo');
+    if (from) from.value = reqRangeFrom;
+    if (to) to.value = reqRangeTo;
     renderAll();
 }
 
@@ -325,8 +377,9 @@ function renderRequestRow(p) {
     const statusOptions = REQUEST_STATUSES.map(s =>
         '<option value="' + s + '"' + (p.status === s ? ' selected' : '') + '>' + s + '</option>').join('');
 
-    // Monitor konfirmasi driver: permintaan Diproses dibroadcast ke semua driver,
-    // driver yang sanggup menekan Konfirmasi dan muncul di sini + di dashboard lacak.
+    // Monitor konfirmasi driver hanya untuk permintaan yang memakai ambulans.
+    // Permintaan pengurusan jenazah murni tidak ditugaskan ke driver.
+    const ambulanRequest = (typeof isAmbulanPermintaan === 'function') ? isAmbulanPermintaan(p) : true;
     const assigned = (typeof assignedDriversOf === 'function') ? assignedDriversOf(p) : [];
     const confirms = (typeof confirmMapOf === 'function') ? confirmMapOf(p) : {};
     const doneMap = (p.driverDone && typeof p.driverDone === 'object') ? p.driverDone : {};
@@ -396,15 +449,17 @@ function renderRequestRow(p) {
                 statusOptions +
             '</select>' +
         '</div>' +
-        '<div class="mt-2.5 pt-2 border-t border-slate-800">' +
-            '<div class="flex items-center gap-2 flex-wrap">' +
-                '<span class="text-[11px] text-slate-400 shrink-0"><i class="fa-solid fa-truck-medical mr-1"></i>' +
-                    (p.status === 'Diproses' ? 'Konfirmasi driver:' : 'Driver bertugas:') + '</span>' +
-                (driverChips || '<span class="text-[11px] text-slate-600">' +
-                    (p.status === 'Diproses' ? 'Belum ada driver yang mengonfirmasi — tugas sudah dibroadcast ke semua driver.'
-                        : 'Belum ada driver bertugas.') + '</span>') +
-            '</div>' +
-        '</div>' +
+        (ambulanRequest
+            ? '<div class="mt-2.5 pt-2 border-t border-slate-800">' +
+                '<div class="flex items-center gap-2 flex-wrap">' +
+                    '<span class="text-[11px] text-slate-400 shrink-0"><i class="fa-solid fa-truck-medical mr-1"></i>' +
+                        (p.status === 'Diproses' ? 'Konfirmasi driver:' : 'Driver bertugas:') + '</span>' +
+                    (driverChips || '<span class="text-[11px] text-slate-600">' +
+                        (p.status === 'Diproses' ? 'Belum ada driver yang mengonfirmasi — tugas sudah dibroadcast ke semua driver.'
+                            : 'Belum ada driver bertugas.') + '</span>') +
+                '</div>' +
+            '</div>'
+            : '') +
         (janaizRequest
             ? '<div class="mt-2.5 pt-2 border-t border-slate-800">' +
                 '<div class="flex items-center gap-2 flex-wrap">' +
@@ -447,7 +502,15 @@ function onListChange(e) {
     const updated = updatePermintaan(id, { status: el.value });
     if (updated) {
         if (el.value === 'Diproses') {
-            toast('Permintaan ' + id + ' diproses — semua driver menerima notifikasi tugas ini.');
+            const ambulan = (typeof isAmbulanPermintaan === 'function') && isAmbulanPermintaan(updated);
+            const janaiz = (typeof isJanaizPermintaan === 'function') && isJanaizPermintaan(updated);
+            if (!ambulan) {
+                toast('Permintaan ' + id + ' diproses — diteruskan ke Tim Janaiz tanpa penugasan driver.');
+            } else if (janaiz) {
+                toast('Permintaan ' + id + ' diproses — driver dan Tim Janaiz menerima notifikasi tugas ini.');
+            } else {
+                toast('Permintaan ' + id + ' diproses — semua driver menerima notifikasi tugas ini.');
+            }
         } else {
             toast('Status ' + id + ' → ' + el.value);
         }

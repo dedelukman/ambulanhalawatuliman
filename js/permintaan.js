@@ -10,6 +10,10 @@ let rangeTo = '';
 appOnReady(() => {
     const from = document.getElementById('rangeFrom');
     const to = document.getElementById('rangeTo');
+
+    // Rentang default: 30 hari terakhir (termasuk hari ini).
+    setDefaultRange();
+
     if (from) from.addEventListener('change', onRangeChange);
     if (to) to.addEventListener('change', onRangeChange);
 
@@ -39,6 +43,19 @@ appOnReady(() => {
     if (typeof applyRoleNav === 'function') applyRoleNav();
     render();
 });
+
+function setDefaultRange() {
+    const today = new Date();
+    const start = new Date(today);
+    start.setDate(start.getDate() - 29);
+
+    rangeFrom = toDateInput(start);
+    rangeTo = toDateInput(today);
+    const fromEl = document.getElementById('rangeFrom');
+    const toEl = document.getElementById('rangeTo');
+    if (fromEl) fromEl.value = rangeFrom;
+    if (toEl) toEl.value = rangeTo;
+}
 
 function onRangeChange() {
     const from = document.getElementById('rangeFrom');

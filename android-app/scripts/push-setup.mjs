@@ -16,7 +16,7 @@ const appDir = path.resolve(here, '..');
 
 const PROJECT = 'ambulanhalawatuliman';
 const PACKAGE_NAME = 'com.halawatuliman.ambulan';
-const APP_LABEL = 'SI Ambulans';
+const APP_LABEL = 'Ambulan dan Janaiz';
 const CONFIG_PATH = path.join(appDir, 'android', 'app', 'google-services.json');
 
 const firebase = 'npx';

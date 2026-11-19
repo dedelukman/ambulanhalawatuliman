@@ -1,5 +1,6 @@
 """make-launcher-icons.py — membuat ikon launcher Android dari emblem
-play-store/icon-512.png (sumber kebenaran ikon aplikasi).
+play-store/icon-512.png (sumber kebenaran ikon aplikasi) dan small icon
+notifikasi dari play-store/ic_stat.png.
 
 Butuh Pillow:  python -m pip install pillow
 Pakai:         python scripts/make-launcher-icons.py
@@ -14,10 +15,11 @@ emblem digambar 68/108 dp agar aman di dalam safe zone semua bentuk mask.
 """
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image
 
 APP = Path(__file__).resolve().parent.parent
 SRC = APP / "play-store" / "icon-512.png"
+NOTIF_SRC = APP / "play-store" / "ic_stat.png"
 RES = APP / "android" / "app" / "src" / "main" / "res"
 
 DENSITIES = {
@@ -72,31 +74,23 @@ def main() -> None:
 
 
 def ambulance_icon(size: int) -> Image.Image:
-    """Siluet ambulans putih (alpha) untuk smallIcon notifikasi."""
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    d = ImageDraw.Draw(img)
-    w = size
-    def r(x0, y0, x1, y1):
-        return (int(x0 * w), int(y0 * w), int(x1 * w), int(y1 * w))
-    # badan
-    d.rounded_rectangle(r(0.06, 0.30, 0.94, 0.72), radius=int(w * 0.06), fill=(255, 255, 255, 255))
-    # kabin depan (lebih tinggi)
-    d.rounded_rectangle(r(0.62, 0.20, 0.94, 0.72), radius=int(w * 0.06), fill=(255, 255, 255, 255))
-    # lampu rotator
-    d.rounded_rectangle(r(0.66, 0.12, 0.80, 0.22), radius=int(w * 0.03), fill=(255, 255, 255, 255))
-    # palang di samping
-    d.rectangle(r(0.16, 0.38, 0.26, 0.64), fill=(255, 255, 255, 255))
-    d.rectangle(r(0.10, 0.46, 0.32, 0.56), fill=(255, 255, 255, 255))
-    # roda
-    for cx, cy in ((0.24, 0.78), (0.78, 0.78)):
-        d.ellipse(r(cx - 0.09, cy - 0.09, cx + 0.09, cy + 0.09), fill=(255, 255, 255, 255))
-    # lubang roda (transparan)
-    for cx, cy in ((0.24, 0.78), (0.78, 0.78)):
-        d.ellipse(r(cx - 0.045, cy - 0.045, cx + 0.045, cy + 0.045), fill=(0, 0, 0, 0))
-    return img
+    """Siluet ambulans putih (alpha) untuk smallIcon notifikasi,
+    diambil dari play-store/ic_stat.png."""
+    src = Image.open(NOTIF_SRC).convert("RGBA")
+    box = src.getbbox()
+    if box:
+        src = src.crop(box)
+    # isi lebar kanvas, pertahankan rasio aspek, dan pusatkan vertikal.
+    height = max(1, round(size * src.height / src.width))
+    art = src.resize((size, height), Image.LANCZOS)
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    canvas.alpha_composite(art, (0, (size - height) // 2))
+    return canvas
 
 
 def make_notifications() -> None:
+    if not NOTIF_SRC.exists():
+        raise SystemExit(f"sumber ikon notifikasi tidak ditemukan: {NOTIF_SRC}")
     for density, scale in DENSITIES.items():
         size = NOTIF_SIZES[density]
         img = ambulance_icon(size)

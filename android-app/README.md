@@ -134,7 +134,7 @@ token diperbarui otomatis saat aplikasi dibuka kembali.
 
 1. **Login dengan peran yang benar** — notifikasi hanya untuk admin (permintaan baru),
    driver (tugas ambulans), dan Tim Janaiz (tugas jenazah). Pemohon/tamu tidak menerima.
-2. **Izinkan notifikasi**: Pengaturan → Aplikasi → SI Ambulans → Notifikasi.
+2. **Izinkan notifikasi**: Pengaturan → Aplikasi → Ambulan dan Janaiz → Notifikasi.
    Aplikasi menampilkan bar merah "Notifikasi tugas nonaktif" bila izin ditolak.
 3. **Aplikasi harus berjalan** (terbuka atau di latar belakang). Notifikasi saat aplikasi
    benar-benar ditutup memerlukan push FCM (bagian di atas).

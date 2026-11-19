@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">SI Ambulans</string>
-    <string name="title_activity_main">SI Ambulans</string>
+    <string name="app_name">Ambulan dan Janaiz</string>
+    <string name="title_activity_main">Ambulan dan Janaiz</string>
     <string name="package_name">com.halawatuliman.ambulan</string>
     <string name="custom_url_scheme">com.halawatuliman.ambulan</string>
 </resources>

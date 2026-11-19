@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Catatan Kas — SI-Ambulans Relawan</title>
+    <title>Catatan Kas — Ambulan dan Janaiz</title>
 
       <!-- di setiap HTML, paling atas -->
     <script src="js/firebase-init.js"></script>
@@ -24,10 +24,11 @@
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="styles.css">
 
-    <!-- Guard: halaman ini hanya untuk sesi admin atau driver yang sudah login -->
+    <!-- Guard: halaman ini hanya untuk sesi admin, driver, atau Tim Janaiz yang sudah login -->
     <script>
         var __kasAllowed = (typeof isAdminLoggedIn === 'function' && isAdminLoggedIn()) ||
-            (typeof isDriverLoggedIn === 'function' && isDriverLoggedIn());
+            (typeof isDriverLoggedIn === 'function' && isDriverLoggedIn()) ||
+            (typeof isJanaizLoggedIn === 'function' && isJanaizLoggedIn());
         if (!__kasAllowed) {
             try { window.localStorage.setItem('si_next', 'kas.html'); } catch (e) {}
             window.location.replace('login.html');
@@ -177,6 +178,15 @@
                     <span class="block text-[11px] text-slate-400">Status & lokasi GPS</span>
                 </span>
             </a>
+            <a href="janaiz.html" id="navJanaiz" class="row-card flex items-center gap-3 hover:border-slate-600 transition hidden">
+                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+                    <i class="fa-solid fa-hands-praying"></i>
+                </span>
+                <span>
+                    <span class="block text-sm font-semibold text-slate-100">Panel Tim Janaiz</span>
+                    <span class="block text-[11px] text-slate-400">Tugas pengurusan jenazah</span>
+                </span>
+            </a>
             <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
                 <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
                     <i class="fa-solid fa-house"></i>
@@ -189,7 +199,7 @@
         </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
-            SI-Ambulans Relawan · Markaz Halawatul Iman<br>
+            Ambulan dan Janaiz · Markaz Halawatul Iman<br>
             Catatan kas tersimpan di Firestore dan tersinkron antar perangkat.
         </footer>
     </div>

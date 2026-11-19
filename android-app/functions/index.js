@@ -33,6 +33,16 @@ function isJenazah(item) {
   return String((item && item.jenis) || '').toLowerCase().indexOf('jenazah') !== -1;
 }
 
+/* Permintaan jenazah murni tidak memakai ambulans, jadi tidak boleh dikirim
+   ke driver. Permintaan gabungan (type 'dua') tetap masuk karena butuh ambulans. */
+function isAmbulan(item) {
+  const type = String((item && item.type) || '').toLowerCase();
+  if (type === 'dua') return true;
+  const jenis = String((item && item.jenis) || '').toLowerCase();
+  if (!jenis) return true;
+  return jenis.indexOf('ambul') !== -1;
+}
+
 function bodyOf(item) {
   const jenis = (item && (item.jenis || item.type)) || 'Permintaan';
   const lokasi = (item && item.lokasi) || 'Lokasi menyusul';
@@ -118,10 +128,12 @@ exports.notifikasiPermintaan = onDocumentWritten('si_state/permintaan', async ev
   }
 
   for (const item of becameProcessed) {
-    await sendToRole('driver', 'Tugas baru ' + item.id, bodyOf(item), {
-      type: 'task',
-      id: String(item.id)
-    });
+    if (isAmbulan(item)) {
+      await sendToRole('driver', 'Tugas baru ' + item.id, bodyOf(item), {
+        type: 'task',
+        id: String(item.id)
+      });
+    }
     if (isJenazah(item)) {
       await sendToRole('janaiz', 'Tugas jenazah ' + item.id, bodyOf(item), {
         type: 'task',

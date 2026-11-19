@@ -1,7 +1,7 @@
 /* kas.js — halaman catatan kas (kas.html)
    - Pemasukan: infak, sedekah, donasi, dll.
    - Pengeluaran: bensin, konsumsi driver, dll.
-   - Hanya bisa diakses sesi admin atau driver (guard di kas.html + di sini)
+   - Hanya bisa diakses sesi admin, driver, atau Tim Janaiz (guard di kas.html + di sini)
    - Data di Firestore via utilitas store.js: getAllKas, addKas, removeKas, filterKasByRange */
 
 const KAS_CATEGORIES = {
@@ -11,31 +11,37 @@ const KAS_CATEGORIES = {
 
 let rangeFrom = '';
 let rangeTo = '';
-let currentRole = '';   // 'admin' | 'driver'
+let currentRole = '';   // 'admin' | 'driver' | 'janaiz'
 let currentName = '';
 
 appOnReady(() => {
-    // Guard ulang: tanpa sesi admin/driver, kembalikan ke login (kirim tujuan awal)
+    // Guard ulang: tanpa sesi admin/driver/janaiz, kembalikan ke login (kirim tujuan awal)
     const isAdmin = typeof isAdminLoggedIn === 'function' && isAdminLoggedIn();
     const isDrv = typeof isDriverLoggedIn === 'function' && isDriverLoggedIn();
-    if (!isAdmin && !isDrv) {
+    const isJnz = typeof isJanaizLoggedIn === 'function' && isJanaizLoggedIn();
+    if (!isAdmin && !isDrv && !isJnz) {
         try { window.localStorage.setItem('si_next', 'kas.html'); } catch (e) {}
         window.location.replace('login.html');
         return;
     }
 
-    currentRole = isAdmin ? 'admin' : 'driver';
+    currentRole = isAdmin ? 'admin' : (isDrv ? 'driver' : 'janaiz');
     currentName = isAdmin
         ? (function () { const s = getAdminSession(); return (s && (s.name || s.username)) || 'Admin'; })()
-        : (function () { const s = getDriverSession(); return (s && s.name) || 'Driver'; })();
+        : (isDrv
+            ? (function () { const s = getDriverSession(); return (s && s.name) || 'Driver'; })()
+            : (function () { const s = getJanaizSession(); return (s && s.name) || 'Tim Janaiz'; })());
 
-    setText('kasWho', (currentRole === 'admin' ? 'Admin · ' : 'Driver · ') + currentName);
+    const roleLabel = currentRole === 'admin' ? 'Admin' : (currentRole === 'driver' ? 'Driver' : 'Tim Janaiz');
+    setText('kasWho', roleLabel + ' · ' + currentName);
 
     // Tampilkan pintu balik ke panel peran masing-masing
     const navAdmin = document.getElementById('navAdmin');
     const navDriver = document.getElementById('navDriver');
+    const navJanaiz = document.getElementById('navJanaiz');
     if (navAdmin) navAdmin.classList.toggle('hidden', currentRole !== 'admin');
     if (navDriver) navDriver.classList.toggle('hidden', currentRole !== 'driver');
+    if (navJanaiz) navJanaiz.classList.toggle('hidden', currentRole !== 'janaiz');
 
     // Tanggal default = hari ini
     const dateEl = document.getElementById('kasDate');
@@ -151,7 +157,8 @@ function setupLogout() {
     if (!btn) return;
     btn.addEventListener('click', () => {
         if (currentRole === 'admin') adminLogout();
-        else driverLogout();
+        else if (currentRole === 'driver') driverLogout();
+        else janaizLogout();
         window.location.href = 'index.html';
     });
 }

@@ -53,7 +53,7 @@
 
     function bgWatcherOptions() {
         return {
-            backgroundMessage: 'SI-Ambulans membagikan lokasi Anda ke dashboard petugas.',
+            backgroundMessage: 'Ambulan dan Janaiz membagikan lokasi Anda ke dashboard petugas.',
             backgroundTitle: 'Berbagi lokasi aktif',
             requestPermissions: true,
             stale: false,
@@ -415,7 +415,7 @@
             'display:flex;gap:10px;align-items:center;';
         var text = document.createElement('span');
         text.style.flex = '1';
-        text.textContent = 'Notifikasi tugas nonaktif. Izinkan lewat Pengaturan > Aplikasi > SI Ambulans > Notifikasi.';
+        text.textContent = 'Notifikasi tugas nonaktif. Izinkan lewat Pengaturan > Aplikasi > Ambulan dan Janaiz > Notifikasi.';
         var btn = document.createElement('button');
         btn.type = 'button';
         btn.textContent = 'Aktifkan';
@@ -485,7 +485,7 @@
             Push.addListener('pushNotificationReceived', function (notification) {
                 if (!notification) return;
                 showNotification(
-                    notification.title || 'SI-Ambulans',
+                    notification.title || 'Ambulan dan Janaiz',
                     notification.body || 'Ada pembaruan tugas.',
                     Object.assign({ key: 'push:' + (notification.id || Date.now()), type: 'task' }, notification.data || {})
                 );

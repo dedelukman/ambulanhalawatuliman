@@ -1,4 +1,4 @@
-# Aset & Deklarasi Play Store — SI-Ambulans Relawan
+# Aset & Deklarasi Play Store — Ambulan dan Janaiz
 
 Paket: `com.halawatuliman.ambulan` · versi 1.0.0 (versionCode 1)
 Bundel unggahan: `android-app/android/app/build/outputs/bundle/release/app-release.aab`
@@ -27,7 +27,7 @@ dan video promosi (YouTube, 30 detik–2 menit).
 
 **Nama aplikasi (maks 30)**
 ```
-SI-Ambulans Relawan
+Ambulan dan Janaiz
 ```
 
 **Deskripsi singkat (maks 80)**
@@ -37,7 +37,7 @@ Permohonan ambulans & pengurusan jenazah gratis, siaga 24 jam.
 
 **Deskripsi lengkap (maks 4000)**
 ```
-SI-Ambulans Relawan adalah layanan ambulans dan pengurusan jenazah Markaz Halawatul Iman untuk warga — cepat, sigap, dan tidak dipungut biaya sewa (sukarela).
+Ambulan dan Janaiz adalah layanan ambulans dan pengurusan jenazah Markaz Halawatul Iman untuk warga — cepat, sigap, dan tidak dipungut biaya sewa (sukarela).
 
 FITUR UNTUK WARGA
 • Buat permohonan ambulans untuk pasien: jemput, antar ke fasilitas kesehatan, lengkap dengan alamat dan tujuan.
@@ -140,7 +140,7 @@ pembaruan aplikasi tidak bisa diunggah.
 
 ## 4. Langkah unggah
 
-1. Play Console → **Create app** → nama `SI-Ambulans Relawan`, bahasa Indonesia,
+1. Play Console → **Create app** → nama `Ambulan dan Janaiz`, bahasa Indonesia,
    jenis **App**, **Free**.
 2. **App content**: isi semua deklarasi di bagian 3 (privasi, akses aplikasi,
    iklan, rating konten, target audiens, data safety, izin lokasi latar belakang).
