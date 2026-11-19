@@ -10,9 +10,9 @@
         // Ubin basemap lokal (hasil unduhan area BASEMAP_BOUNDS, zoom 11-12).
         // Dipakai menggantikan tile OSM online agar peta tetap tampil offline.
         const BASEMAP_TILES = 'assets/tiles/{z}/{x}/{y}.png';
-        // Sumber ubin utama: disajikan dari hosting aplikasi agar tidak ikut
-        // diblokir saat tile OSM diblokir. Bila gagal/offline, tiap ubin jatuh
-        // ke BASEMAP_TILES lokal di atas.
+        // Sumber ubin cadangan: dipakai hanya bila ubin lokal di atas tidak
+        // ditemukan (mis. di luar area yang dibundel). Ubin lokal tetap utama
+        // sehingga peta di aplikasi Android tidak bergantung jaringan.
         const BASEMAP_TILES_HOSTED = 'https://ambulanhalawatuliman.freehosting.dev/assets/tiles/{z}/{x}/{y}.png';
         // Bounding box khusus area Bojonggede dan sekitarnya (lebih dekat/besar)
        const BASEMAP_BOUNDS = [

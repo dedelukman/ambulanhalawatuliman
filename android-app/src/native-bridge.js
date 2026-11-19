@@ -31,6 +31,9 @@
     var APP_VERSION = '1.0.2';
 
     window.__SI_NATIVE_APP = true;
+    // Penanda agar MainActivity tidak menyuntikkan salinan kedua bila halaman
+    // lokal (www) sudah memuat skrip ini sendiri.
+    window.__SI_NATIVE_BRIDGE_INJECTED = true;
     document.documentElement.classList.add('si-native');
 
     function log() {

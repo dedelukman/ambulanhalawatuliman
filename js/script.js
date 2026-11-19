@@ -135,47 +135,48 @@ appOnReady(() => {
             }
 
             map = L.map('map').setView([CENTER_LAT, CENTER_LNG], 12);
-            // Ubin peta diambil dari hosting aplikasi (agar tidak ikut diblokir
-            // seperti tile OSM). Bila satu ubin gagal dimuat (404/jaringan
-            // diblokir/offline), ubin itu otomatis memakai salinan lokal di
-            // BASEMAP_TILES sehingga peta tidak pernah kosong.
-            // Setelah beberapa ubin hosting gagal (mis. belum diunggah/offline),
-            // ubin berikutnya langsung dipakai lokal agar tidak menunggu tiap ubin.
-            let hostedTileFailures = 0;
-            const HOSTED_FAILURE_LIMIT = 3;
+            // Ubin peta dibaca dari salinan lokal BASEMAP_TILES yang ikut
+            // dibundel di dalam aplikasi (localhost pada aplikasi Android),
+            // sehingga peta tetap tampil walau tile OSM / hosting diblokir
+            // atau perangkat sedang offline.
+            // Hosting hanya dipakai bila ubin lokal tidak ditemukan, dan
+            // setelah beberapa ubin lokal gagal ubin berikutnya langsung
+            // memakai hosting agar tidak menunggu tiap ubin.
+            let localTileFailures = 0;
+            const LOCAL_FAILURE_LIMIT = 3;
             const BasemapTiles = L.TileLayer.extend({
                 createTile: function (coords, done) {
                     const tile = document.createElement('img');
                     tile.alt = '';
                     tile.setAttribute('role', 'presentation');
                     const zoomForUrl = this._getZoomForUrl ? this._getZoomForUrl() : coords.z;
-                    const localUrl = L.Util.template(BASEMAP_TILES, {
+                    const hostedUrl = L.Util.template(BASEMAP_TILES_HOSTED, {
                         z: zoomForUrl, x: coords.x, y: coords.y
                     });
                     let fallbackUsed = false;
                     tile.onload = function () { done(null, tile); };
                     tile.onerror = function () {
-                        if (!fallbackUsed && tile.src !== localUrl) {
+                        if (!fallbackUsed && tile.src !== hostedUrl) {
                             fallbackUsed = true;
-                            hostedTileFailures++;
-                            tile.src = localUrl;
+                            localTileFailures++;
+                            tile.src = hostedUrl;
                             return;
                         }
                         done(new Error('ubin peta gagal dimuat'), tile);
                     };
-                    tile.src = hostedTileFailures >= HOSTED_FAILURE_LIMIT
-                        ? localUrl
+                    tile.src = localTileFailures >= LOCAL_FAILURE_LIMIT
+                        ? hostedUrl
                         : this.getTileUrl(coords);
                     return tile;
                 }
             });
-            new BasemapTiles(BASEMAP_TILES_HOSTED, {
+            new BasemapTiles(BASEMAP_TILES, {
                 minZoom: 10,
                 maxZoom: 16,
                 minNativeZoom: 11,
                 maxNativeZoom: 12,
                 bounds: L.latLngBounds(BASEMAP_BOUNDS),
-                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             }).addTo(map);
             map.setMaxBounds(L.latLngBounds(BASEMAP_BOUNDS).pad(0.15));
 

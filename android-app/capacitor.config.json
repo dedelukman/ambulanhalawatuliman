@@ -2,11 +2,15 @@
   "appId": "com.halawatuliman.siambulans",
   "appName": "SI Ambulans",
   "webDir": "www",
+  "server": {
+    "url": "https://ambulanhalawatuliman.freehosting.dev"
+  },
   "android": {
-  "plugins": {
-    "LocalNotifications": {
-      "smallIcon": "ic_stat_ambulance",
-      "iconColor": "#DC2626"
+    "plugins": {
+      "LocalNotifications": {
+        "smallIcon": "ic_stat_ambulance",
+        "iconColor": "#DC2626"
+      }
     }
   }
 }
