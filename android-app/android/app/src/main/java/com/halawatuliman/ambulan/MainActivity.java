@@ -21,11 +21,10 @@ public class MainActivity extends BridgeActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        /* WebView memuat situs hosting (server.url di capacitor.config.json), sehingga
-           js/native-bridge.js milik halaman web tidak ada di server hosting. Suntikkan
-           salinan di dalam APK setelah setiap halaman selesai dimuat agar lokasi latar
-           belakang, notifikasi tugas, dan tombol back tetap bekerja. Halaman lokal
-           (www) sudah memuat skrip ini sendiri, jadi penyuntikan dilewati. */
+        /* Aplikasi kini memuat aset lokal (www) yang sudah menyisipkan
+           js/native-bridge.js sendiri. Penyuntikan ini tetap dipertahankan sebagai
+           cadangan bila suatu saat server.url di capacitor.config.json dipakai lagi,
+           agar lokasi latar belakang, notifikasi tugas, dan tombol back tetap bekerja. */
         getBridge().addWebViewListener(new WebViewListener() {
             @Override
             public void onPageLoaded(WebView webView) {

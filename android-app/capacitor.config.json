@@ -2,9 +2,6 @@
   "appId": "com.halawatuliman.ambulan",
   "appName": "Ambulan dan Janaiz",
   "webDir": "www",
-  "server": {
-    "url": "https://ambulanhalawatuliman.freehosting.dev"
-  },
   "android": {
     "plugins": {
       "LocalNotifications": {

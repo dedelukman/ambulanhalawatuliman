@@ -1389,6 +1389,10 @@ function updateNavRequestBadge() {
 }
 
 appOnReady(function () {
+    /* Dipanggil terpusat agar tautan panel pada floating nav seragam di semua
+       halaman (sebelumnya halaman Kas & dashboard tidak pernah memanggilnya,
+       sehingga "Panel" tetap menuju login.html walau sudah masuk). */
+    if (typeof applyRoleNav === 'function') applyRoleNav();
     updateNavRequestBadge();
     document.addEventListener('firestore:update', function (event) {
         if (event.detail && event.detail.key === STORE_KEYS.PERMINTAAN) updateNavRequestBadge();
