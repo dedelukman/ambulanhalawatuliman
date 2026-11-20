@@ -35,7 +35,7 @@
         }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen has-bottom-nav">
 
     <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
 
@@ -158,51 +158,29 @@
             <p class="text-xs text-slate-500">Belum ada catatan kas pada rentang ini.</p>
         </div>
 
-        <!-- Navigasi -->
-        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-            <a href="admin.html" id="navAdmin" class="row-card flex items-center gap-3 hover:border-slate-600 transition hidden">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center">
-                    <i class="fa-solid fa-user-gear"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Panel Admin</span>
-                    <span class="block text-[11px] text-slate-400">Kelola armada & permintaan</span>
-                </span>
-            </a>
-            <a href="driver.html" id="navDriver" class="row-card flex items-center gap-3 hover:border-slate-600 transition hidden">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
-                    <i class="fa-solid fa-id-card-clip"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Panel Driver</span>
-                    <span class="block text-[11px] text-slate-400">Status & lokasi GPS</span>
-                </span>
-            </a>
-            <a href="janaiz.html" id="navJanaiz" class="row-card flex items-center gap-3 hover:border-slate-600 transition hidden">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                    <i class="fa-solid fa-hands-praying"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Panel Tim Janaiz</span>
-                    <span class="block text-[11px] text-slate-400">Tugas pengurusan jenazah</span>
-                </span>
-            </a>
-            <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
-                    <i class="fa-solid fa-house"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Halaman Utama</span>
-                    <span class="block text-[11px] text-slate-400">Form permintaan ambulans</span>
-                </span>
-            </a>
-        </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
             Ambulan dan Janaiz · Markaz Halawatul Iman<br>
             Catatan kas tersimpan di Firestore dan tersinkron antar perangkat.
         </footer>
     </div>
+
+    <!-- Navigasi mengapung -->
+    <nav class="bottom-nav" aria-label="Navigasi utama">
+        <a href="index.html" class="bottom-nav__item">
+            <i class="fa-solid fa-house" aria-hidden="true"></i><span>Beranda</span>
+        </a>
+        <a href="permintaan.html" class="bottom-nav__item">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Riwayat</span>
+            <span class="bottom-nav__badge hidden" data-nav-badge="permintaan" aria-hidden="true">0</span>
+        </a>
+        <a href="login.html" data-nav="auto" class="bottom-nav__item" title="Panel saya">
+            <i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Panel</span>
+        </a>
+        <a href="kas.html" class="bottom-nav__item is-active" aria-current="page">
+            <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Kas</span>
+        </a>
+    </nav>
 
 </body>
 </html>

@@ -25,7 +25,7 @@
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen has-bottom-nav">
 
     <!-- Kontainer utama: mobile-first (satu kolom sempit), melebar di layar besar -->
     <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
@@ -525,54 +525,6 @@
             <div id="checkResult" class="hidden mt-3 text-xs"></div>
         </section>
 
-        <!-- Navigasi halaman lain -->
-        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-            <a href="permintaan.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Riwayat Permintaan</span>
-                    <span class="block text-[11px] text-slate-400">Daftar permintaan & filter rentang waktu</span>
-                </span>
-            </a>
-            <a href="login.html?role=driver" data-nav="driver" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center">
-                    <i class="fa-solid fa-id-card-clip"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100" data-nav-label>Login Driver</span>
-                    <span class="block text-[11px] text-slate-400">Aktifkan update lokasi GPS</span>
-                </span>
-            </a>
-            <a href="dashboard.html" id="dashboardNavCard" class="row-card hidden flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Dashboard Ambulans</span>
-                    <span class="block text-[11px] text-slate-400">Peta & status armada real-time</span>
-                </span>
-            </a>
-            <a href="login.html?role=janaiz" data-nav="janaiz" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                    <i class="fa-solid fa-hands-praying"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100" data-nav-label>Login Tim Janaiz</span>
-                    <span class="block text-[11px] text-slate-400">Panel tugas pengurusan jenazah</span>
-                </span>
-            </a>
-            <a href="login.html" data-nav="admin" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center">
-                    <i class="fa-solid fa-user-shield"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100" data-nav-label>Masuk Admin</span>
-                    <span class="block text-[11px] text-slate-400">Kelola ambulans, driver & permintaan</span>
-                </span>
-            </a>
-        </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
             Ambulan dan Janaiz · Markaz Halawatul Iman<br>
@@ -581,6 +533,20 @@
             <a href="privasi.html" class="text-slate-500 hover:text-slate-300">Kebijakan Privasi</a>
         </footer>
     </div>
+
+    <!-- Navigasi mengapung -->
+    <nav class="bottom-nav" aria-label="Navigasi utama">
+        <a href="index.html" class="bottom-nav__item is-active" aria-current="page">
+            <i class="fa-solid fa-house" aria-hidden="true"></i><span>Beranda</span>
+        </a>
+        <a href="permintaan.html" class="bottom-nav__item">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Riwayat</span>
+            <span class="bottom-nav__badge hidden" data-nav-badge="permintaan" aria-hidden="true">0</span>
+        </a>
+        <a href="login.html" data-nav="auto" class="bottom-nav__item" title="Masuk akun">
+            <i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Akun</span>
+        </a>
+    </nav>
 
 </body>
 </html>

@@ -1364,6 +1364,37 @@ function applyRoleNav() {
     });
 }
 
+/* ---------- Badge jumlah permintaan baru pada floating nav ----------
+   Permintaan dianggap "baru" bila statusnya masih Menunggu — sama dengan
+   sumber notifikasi di panel admin. Diperbarui setiap snapshot Firestore. */
+function countNewPermintaan() {
+    const list = typeof getAllPermintaan === 'function' ? getAllPermintaan() : [];
+    return list.filter(item => item && item.status === 'Menunggu').length;
+}
+
+function updateNavRequestBadge() {
+    const badge = document.querySelector('.bottom-nav [data-nav-badge="permintaan"]');
+    if (!badge) return;
+
+    const count = countNewPermintaan();
+    badge.textContent = count > 99 ? '99+' : String(count);
+    badge.classList.toggle('hidden', count === 0);
+
+    const link = badge.closest('a');
+    if (link) {
+        link.setAttribute('aria-label', count
+            ? 'Riwayat permintaan, ' + count + ' permintaan baru'
+            : 'Riwayat permintaan');
+    }
+}
+
+appOnReady(function () {
+    updateNavRequestBadge();
+    document.addEventListener('firestore:update', function (event) {
+        if (event.detail && event.detail.key === STORE_KEYS.PERMINTAAN) updateNavRequestBadge();
+    });
+});
+
 function setNavTarget(el, href, label) {
     el.setAttribute('href', href);
     if (el.hasAttribute('title')) el.setAttribute('title', label);

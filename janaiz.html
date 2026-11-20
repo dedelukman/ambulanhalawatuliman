@@ -34,7 +34,7 @@
         }
     </script>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen has-bottom-nav">
 
     <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
 
@@ -104,42 +104,29 @@
             </p>
         </section>
 
-        <!-- Navigasi -->
-        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-            <a href="permintaan.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center">
-                    <i class="fa-solid fa-clipboard-list"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Riwayat Permintaan</span>
-                    <span class="block text-[11px] text-slate-400">Daftar & filter rentang waktu</span>
-                </span>
-            </a>
-            <a href="kas.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center">
-                    <i class="fa-solid fa-wallet"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Catatan Kas</span>
-                    <span class="block text-[11px] text-slate-400">Pemasukan & pengeluaran</span>
-                </span>
-            </a>
-            <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
-                    <i class="fa-solid fa-house"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Halaman Utama</span>
-                    <span class="block text-[11px] text-slate-400">Formulir permohonan warga</span>
-                </span>
-            </a>
-        </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
             Ambulan dan Janaiz · Markaz Halawatul Iman<br>
             Konfirmasi tugas tersimpan di Firestore dan terlihat di panel admin.
         </footer>
     </div>
+
+    <!-- Navigasi mengapung -->
+    <nav class="bottom-nav" aria-label="Navigasi utama">
+        <a href="index.html" class="bottom-nav__item">
+            <i class="fa-solid fa-house" aria-hidden="true"></i><span>Beranda</span>
+        </a>
+        <a href="permintaan.html" class="bottom-nav__item">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Riwayat</span>
+            <span class="bottom-nav__badge hidden" data-nav-badge="permintaan" aria-hidden="true">0</span>
+        </a>
+        <a href="kas.html" class="bottom-nav__item">
+            <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Kas</span>
+        </a>
+        <a href="janaiz.html" class="bottom-nav__item is-active" aria-current="page">
+            <i class="fa-solid fa-hands-praying" aria-hidden="true"></i><span>Janaiz</span>
+        </a>
+    </nav>
 
 </body>
 </html>

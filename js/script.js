@@ -1163,6 +1163,7 @@ appOnReady(() => {
         // Mobile Responsive Drawer Helper
         function closeMobileSidebar() {
             document.getElementById('sidebar').classList.remove('is-open');
+            document.body.classList.remove('sidebar-open');
         }
 
         function setupMobileSidebar() {
@@ -1170,7 +1171,8 @@ appOnReady(() => {
             const sidebar = document.getElementById('sidebar');
 
             toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('is-open');
+                const isOpen = sidebar.classList.toggle('is-open');
+                document.body.classList.toggle('sidebar-open', isOpen);
                 // Peta menyesuaikan ukurannya karena sidebar mendorong layout
                 if (map) setTimeout(() => map.invalidateSize(), 50);
             });

@@ -25,7 +25,7 @@
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen has-bottom-nav">
 
     <div class="mx-auto w-full max-w-lg px-4 pb-14 md:max-w-2xl">
 
@@ -100,33 +100,31 @@
             </div>
         </section>
 
-        <!-- Navigasi -->
-        <nav class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-6">
-            <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
-                    <i class="fa-solid fa-house"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100">Buat Permintaan</span>
-                    <span class="block text-[11px] text-slate-400">Form ambulans & jenazah</span>
-                </span>
-            </a>
-            <a href="login.html" data-nav="auto" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center">
-                    <i class="fa-solid fa-user-shield"></i>
-                </span>
-                <span>
-                    <span class="block text-sm font-semibold text-slate-100" data-nav-label>Login Admin / Driver</span>
-                    <span class="block text-[11px] text-slate-400">Panel kelola & pelacakan GPS</span>
-                </span>
-            </a>
-        </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600 leading-relaxed">
             Ambulan dan Janaiz · Markaz Halawatul Iman<br>
             Data permintaan tersimpan di Firestore dan tersinkron antar perangkat.
         </footer>
     </div>
+
+    <!-- Aksi utama mengapung: buat permintaan baru -->
+    <a href="index.html#requestForm" class="fab" aria-label="Buat permintaan baru" title="Buat permintaan baru">
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+    </a>
+
+    <!-- Navigasi mengapung -->
+    <nav class="bottom-nav" aria-label="Navigasi utama">
+        <a href="index.html" class="bottom-nav__item">
+            <i class="fa-solid fa-house" aria-hidden="true"></i><span>Beranda</span>
+        </a>
+        <a href="permintaan.html" class="bottom-nav__item is-active" aria-current="page">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Riwayat</span>
+            <span class="bottom-nav__badge hidden" data-nav-badge="permintaan" aria-hidden="true">0</span>
+        </a>
+        <a href="login.html" data-nav="auto" class="bottom-nav__item" title="Masuk akun">
+            <i class="fa-solid fa-user-shield" aria-hidden="true"></i><span>Akun</span>
+        </a>
+    </nav>
 
 </body>
 </html>

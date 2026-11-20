@@ -24,7 +24,7 @@
     <link rel="stylesheet" href="app.css">
     <link rel="stylesheet" href="styles.css">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen">
+<body class="bg-slate-950 text-slate-100 min-h-screen has-bottom-nav">
 
     <!-- Kontainer utama: mobile-first, melebar di layar besar -->
     <div class="mx-auto w-full max-w-lg px-4 pb-16 md:max-w-3xl">
@@ -142,32 +142,28 @@
             <p class="text-xs text-slate-500">Belum ada data di seksi ini.</p>
         </div>
 
-        <!-- Navigasi -->
-        <nav class="grid grid-cols-2 gap-3 mt-8">
-            <a href="index.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-red-500/15 border border-red-500/30 text-red-400 flex items-center justify-center">
-                    <i class="fa-solid fa-house"></i>
-                </span>
-                <span class="text-sm font-semibold text-slate-100">Halaman Utama</span>
-            </a>
-            <a href="dashboard.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-400 flex items-center justify-center">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                </span>
-                <span class="text-sm font-semibold text-slate-100">Dashboard Ambulans</span>
-            </a>
-            <a href="kas.html" class="row-card flex items-center gap-3 hover:border-slate-600 transition">
-                <span class="w-9 h-9 shrink-0 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-400 flex items-center justify-center">
-                    <i class="fa-solid fa-wallet"></i>
-                </span>
-                <span class="text-sm font-semibold text-slate-100">Catatan Kas</span>
-            </a>
-        </nav>
 
         <footer class="mt-8 text-center text-[11px] text-slate-600">
             Data tersinkron real-time via Firebase Firestore.
         </footer>
     </div>
+
+    <!-- Navigasi mengapung -->
+    <nav class="bottom-nav" aria-label="Navigasi utama">
+        <a href="index.html" class="bottom-nav__item">
+            <i class="fa-solid fa-house" aria-hidden="true"></i><span>Beranda</span>
+        </a>
+        <a href="permintaan.html" class="bottom-nav__item">
+            <i class="fa-solid fa-clipboard-list" aria-hidden="true"></i><span>Riwayat</span>
+            <span class="bottom-nav__badge hidden" data-nav-badge="permintaan" aria-hidden="true">0</span>
+        </a>
+        <a href="kas.html" class="bottom-nav__item">
+            <i class="fa-solid fa-wallet" aria-hidden="true"></i><span>Kas</span>
+        </a>
+        <a href="admin.html" class="bottom-nav__item is-active" aria-current="page">
+            <i class="fa-solid fa-user-gear" aria-hidden="true"></i><span>Admin</span>
+        </a>
+    </nav>
 
     <!-- Modal form tambah / ubah -->
     <div class="modal" id="editModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
